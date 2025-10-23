@@ -1,0 +1,16 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcuserdatad
+.DS_Store
+
+# Pods
+Pods/
+Podfile.lock
+
+# Build products
+build/
+.build/
+
+# GeoTIFF (ha érzékeny adat, de nálad offline, így OK)
+# geoid_eht2014.tif  # Ha nem akarod feltölteni, add hozzá ezt a sort
