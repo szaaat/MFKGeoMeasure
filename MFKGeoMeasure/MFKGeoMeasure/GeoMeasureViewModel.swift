@@ -25,6 +25,13 @@ class GeoMeasureViewModel: NSObject, ObservableObject, CLLocationManagerDelegate
     @Published var showImportSheet: Bool = false
     @Published var imuReferencePoint: MeasurementPoint?
     
+    // --- HOZZÁADVA: Barométer tulajdonságok ---
+    @Published var currentPressure: Double? // A UI számára
+    private let altimeterManager = AltimeterManager()
+    private var altimeterCancellable: AnyCancellable?
+    private var pressureCancellable: AnyCancellable?
+    // --- HOZZÁADÁS VÉGE ---
+    
     private var locationManager = CLLocationManager()
     private var motionManager = CMMotionManager()
     private var geoidModel = GeoidModel()
@@ -40,7 +47,40 @@ class GeoMeasureViewModel: NSObject, ObservableObject, CLLocationManagerDelegate
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 1.0
         locationManager.activityType = .otherNavigation
+        // --- HOZZÁADVA: Barométer figyelők beállítása ---
+        if altimeterManager.isAvailable {
+            setupAltimeterBindings()
+        }
+        // --- HOZZÁADÁS VÉGE ---
     }
+    
+    // --- HOZZÁADVA: Új privát függvény a barométer adatok kezelésére ---
+    private func setupAltimeterBindings() {
+        // 1. A nyomásadat átadása a UI-nak
+        pressureCancellable = altimeterManager.$currentPressure
+            .receive(on: RunLoop.main)
+            .sink { [weak self] pressure in
+                self?.currentPressure = (pressure > 0) ? pressure : nil
+            }
+
+        // 2. A relatív magasságadat továbbítása az IMU Managernek (ha IMU módban vagyunk)
+        altimeterCancellable = altimeterManager.$relativeAltitude
+            .receive(on: RunLoop.main)
+            .sink { [weak self] relativeAltitude in
+                guard let self = self else { return }
+
+                if self.mode == .imu {
+                    // Továbbítjuk a stabil vertikális adatot az IMU-nak
+                    self.imuManager.updateVerticalWithBarometer(relativeAltitude: relativeAltitude)
+
+                    // Frissítjük a fő kijelzőn látható magasságot is
+                    if let referenceHeight = self.imuReferencePoint?.height {
+                        self.currentHeight = referenceHeight + relativeAltitude
+                    }
+                }
+            }
+    }
+    // --- HOZZÁADÁS VÉGE ---
     
     func toggleMode() {
         switch mode {
@@ -53,7 +93,9 @@ class GeoMeasureViewModel: NSObject, ObservableObject, CLLocationManagerDelegate
             }
             mode = .imu
         case .imu:
-            imuManager.stopIMUMeasurement()
+            // --- MÓDOSÍTVA ---
+            stopIMU() // Különválasztva az IMU és Barométer leállítása
+            // --- MÓDOSÍTÁS VÉGE ---
             startGPS()
             mode = .gps
         }
@@ -68,6 +110,16 @@ class GeoMeasureViewModel: NSObject, ObservableObject, CLLocationManagerDelegate
         locationManager.stopUpdatingLocation()
     }
     
+    // --- HOZZÁADVA: Új függvény az IMU és a barométer leállítására ---
+    func stopIMU() {
+        imuManager.stopIMUMeasurement()
+        if altimeterManager.isAvailable {
+            altimeterManager.stop()
+        }
+        imuReferencePoint = nil
+    }
+    // --- HOZZÁADÁS VÉGE ---
+    
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { return }
         currentCoordinate = loc.coordinate
@@ -81,6 +133,11 @@ class GeoMeasureViewModel: NSObject, ObservableObject, CLLocationManagerDelegate
         imuReferencePoint = point
         imuManager.setReferencePoint(point)
         imuManager.startIMUMeasurement(from: point)
+        // --- HOZZÁADVA: Barométer indítása IMU módban ---
+        if altimeterManager.isAvailable {
+            altimeterManager.start()
+        }
+        // --- HOZZÁADÁS VÉGE ---
         mode = .imu
     }
     
@@ -97,7 +154,10 @@ class GeoMeasureViewModel: NSObject, ObservableObject, CLLocationManagerDelegate
                 newPoint = MeasurementPoint(coordinate: coord, height: height, accuracy: locationManager.location?.horizontalAccuracy, mode: .gps)
             }
         case .imu:
+            // --- MÓDOSÍTVA: A magasság már a barométerből jön ---
+            // Az IMU manager a barométer adatot használja a Z tengelyhez
             newPoint = imuManager.getCurrentMeasurement()
+            // --- MÓDOSÍTÁS VÉGE ---
         }
         if let point = newPoint {
             points.append(point)

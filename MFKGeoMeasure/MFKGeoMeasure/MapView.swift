@@ -125,6 +125,16 @@ struct MapViewWrapper: View {
                             Text(" ±\(viewModel.imuManager.accuracyEstimate, specifier: "%.2f") m")
                                 .foregroundColor(.red)
                         }
+                        // --- HOZZÁADVA: Légnyomás kijelző ---
+                        if let pressure = viewModel.currentPressure {
+                            Image(systemName: "barometer")
+                                .font(.caption)
+                                .foregroundColor(.blue.opacity(0.7))
+                            Text("\(pressure, specifier: "%.1f") kPa")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        // --- HOZZÁADÁS VÉGE ---
                     }
                     .padding()
                     .background(Color.white.opacity(0.8))

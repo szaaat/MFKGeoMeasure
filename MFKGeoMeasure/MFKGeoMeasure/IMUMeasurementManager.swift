@@ -30,7 +30,7 @@ class IMUMeasurementManager: ObservableObject {
         guard motionManager.isDeviceMotionAvailable else { return }
         
         referencePoint = reference
-        currentPosition = SIMD3<Double>(0, 0, 0)
+        velocity = SIMD3<Double>(0, 0, 0)
         driftCorrection = SIMD3<Double>(0, 0, 0)
         accuracyEstimate = 0.1
         isCalibrated = reference != nil
@@ -56,10 +56,21 @@ class IMUMeasurementManager: ObservableObject {
         accuracyEstimate = 0.05
         isCalibrated = true
     }
+    // --- HOZZÁADVA: Új függvény a barométer adatok fogadására ---
+    /**
+     Frissíti a vertikális pozíciót (Z tengely) a barométer által szolgáltatott relatív magasság alapján.
+     Ezt a GeoMeasureViewModel hívja meg.
+     */
+    func updateVerticalWithBarometer(relativeAltitude: Double) {
+        // Közvetlenül beállítjuk a Z (függőleges) komponenst a barométer adatára.
+        // Ez felülírja a gyorsulásból számított, sodródásra hajlamos Z értéket.
+        self.currentPosition.z = relativeAltitude
+    }
+    // --- HOZZÁADÁS VÉGE ---
     
     func setReferencePoint(_ point: MeasurementPoint) {
         referencePoint = point
-        currentPosition = SIMD3<Double>(0, 0, 0)
+        velocity = SIMD3<Double>(0, 0, 0)
         driftCorrection = SIMD3<Double>(0, 0, 0)
         isCalibrated = true
     }
@@ -162,8 +173,10 @@ class IMUMeasurementManager: ObservableObject {
         
         let deltaNorth = deltaLat * .pi / 180 * earthRadius
         let deltaEast = deltaLon * .pi / 180 * earthRadius * cos(reference.coordinate.latitude * .pi / 180)
+        // --- MÓDOSÍTVA: A kalibrációnál is a mért magasságkülönbséget használjuk ---
         let deltaHeight = point.height - reference.height
-        
+        // --- MÓDOSÍTÁS VÉGE ---
+
         return SIMD3<Double>(deltaNorth, deltaEast, deltaHeight)
     }
 }
