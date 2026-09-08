@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../models/gnss_fix.dart';
 
 class NmeaParser {
@@ -19,6 +20,10 @@ class NmeaParser {
     if (parts.isEmpty) return null;
 
     final type = parts[0].substring(3);
+    
+    if (type == 'GGA') {
+      debugPrint('[NMEA-PARSER] Sentence: $sentence');
+    }
 
     switch (type) {
       case 'GGA':
@@ -85,6 +90,8 @@ class NmeaParser {
 
     double? age = double.tryParse(parts[13]);
     String? station = parts[14];
+
+    debugPrint('[NMEA-PARSER] Quality: $quality (Fix: ${fixType.name}, RTK: ${rtkStatus.name}), Sats: $_satellitesUsed, Age: $age');
 
     return GnssFix(
       latitude: lat,

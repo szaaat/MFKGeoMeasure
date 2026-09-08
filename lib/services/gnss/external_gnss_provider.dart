@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../../models/gnss_fix.dart';
 import 'gnss_provider.dart';
 import 'gnss_transport.dart';
@@ -37,6 +38,7 @@ class ExternalGnssProvider implements GnssProvider {
 
   @override
   Future<void> connect() async {
+    debugPrint('[GNSS-EXTERNAL] Connecting to $_receiverName via $_connectionType');
     await _transport.connect();
     
     _dataSubscription = _transport.dataStream.listen((data) {
@@ -52,6 +54,7 @@ class ExternalGnssProvider implements GnssProvider {
 
   @override
   void sendCorrectionData(List<int> data) {
+    debugPrint('[RTCM] Forwarding ${data.length} bytes to receiver');
     _transport.write(data);
   }
 
@@ -64,6 +67,7 @@ class ExternalGnssProvider implements GnssProvider {
   }
 
   void _processRawData(List<int> data) {
+    debugPrint('[GNSS-EXTERNAL] Bytes received: ${data.length}');
     _buffer += utf8.decode(data, allowMalformed: true);
     
     // NMEA mondatok szétszedése (sorvégjelek mentén)

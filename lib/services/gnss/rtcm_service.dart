@@ -33,6 +33,7 @@ class RtcmService extends ChangeNotifier {
     int ggaInterval = 10,
     required GnssProvider targetProvider,
   }) {
+    debugPrint('[RTCM-SERVICE] Starting NTRIP session for $mountpoint');
     _cancelReconnect();
     stopNtrip();
 
@@ -85,6 +86,7 @@ class RtcmService extends ChangeNotifier {
     final delay = _backoffIntervals[(_reconnectAttempt < _backoffIntervals.length) ? _reconnectAttempt : _backoffIntervals.length - 1];
     _reconnectAttempt++;
     
+    debugPrint('[RTCM-SERVICE] Reconnect attempt $_reconnectAttempt in $delay seconds');
     debugPrint("NTRIP: Scheduling reconnect in $delay seconds (Attempt $_reconnectAttempt)");
     
     _reconnectTimer = Timer(Duration(seconds: delay), () {

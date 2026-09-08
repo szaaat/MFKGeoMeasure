@@ -86,6 +86,7 @@ class NtripClient {
   Future<void> _doConnect() async {
     if (_status == NtripStatus.notConfigured) return;
     
+    debugPrint('[NTRIP] Connecting to $host:$port');
     _bytesReceived = 0;
     _lastRtcmReceived = null;
     _correctionStopwatch.reset();
@@ -118,6 +119,7 @@ class NtripClient {
           if (!headerFinished) {
             final response = utf8.decode(data, allowMalformed: true);
             if (response.contains('200 OK')) {
+              debugPrint('[NTRIP] Connected to mountpoint: $mountpoint');
               headerFinished = true;
               _updateStatus(NtripStatus.connected);
               _startGgaFeedback();
@@ -166,6 +168,7 @@ class NtripClient {
   }
 
   void _handleRtcmData(List<int> data) {
+    debugPrint('[NTRIP] RTCM packet received: ${data.length} bytes');
     if (_status != NtripStatus.correctionDataActive) {
       _updateStatus(NtripStatus.correctionDataActive);
     }
@@ -178,6 +181,7 @@ class NtripClient {
   }
 
   void _handleError(NtripError error, String technical) {
+    debugPrint('[NTRIP] Error: $error ($technical)');
     _lastError = error;
     _technicalError = technical;
     _updateStatus(NtripStatus.error);
