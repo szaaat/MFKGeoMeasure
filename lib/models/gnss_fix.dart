@@ -16,6 +16,12 @@ enum RtkStatus {
 enum GnssSource {
   internal,
   external,
+  hybrid,
+}
+
+enum TimestampSource {
+  device,
+  gnss,
 }
 
 enum GnssConnectionType {
@@ -63,6 +69,7 @@ class GnssFix {
   final GnssConnectionType connectionType;
   
   final DateTime timestamp;
+  final TimestampSource timestampSource;
 
   GnssFix({
     required this.latitude,
@@ -87,6 +94,7 @@ class GnssFix {
     this.receiverName,
     required this.connectionType,
     required this.timestamp,
+    this.timestampSource = TimestampSource.device,
   });
 
   LatLng get toLatLng => LatLng(latitude, longitude);
@@ -112,6 +120,7 @@ class GnssFix {
     'receiverName': receiverName,
     'connectionType': connectionType.name,
     'timestamp': timestamp.toIso8601String(),
+    'timestampSource': timestampSource.name,
   };
 
   @override

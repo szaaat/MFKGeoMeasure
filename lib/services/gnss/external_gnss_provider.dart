@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../models/gnss_fix.dart';
+import '../../models/gnss_raw_measurement.dart';
 import 'gnss_provider.dart';
 import 'gnss_transport.dart';
 import 'nmea_parser.dart';
@@ -29,6 +30,9 @@ class ExternalGnssProvider implements GnssProvider {
 
   @override
   Stream<GnssFix> get fixStream => _fixController.stream;
+
+  @override
+  Stream<GnssRawMeasurement> get rawMeasurementStream => const Stream.empty();
   
   /// Stream a beérkező nyers GGA mondatokról (NTRIP feedbackhez)
   Stream<String> get ggaStream => _ggaController.stream;

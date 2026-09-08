@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:raw_gnss/raw_gnss.dart';
 import 'package:latlong2/latlong.dart';
+import '../models/gnss_raw_measurement.dart';
 
 class RawGnssLogSession {
   final String id;
@@ -37,7 +37,6 @@ class RawGnssLogSession {
 }
 
 class RawGnssLogger extends ChangeNotifier {
-  final RawGnss _rawGnss = RawGnss();
   StreamSubscription? _measurementSub;
   File? _logFile;
   File? _metaFile;
@@ -50,6 +49,7 @@ class RawGnssLogger extends ChangeNotifier {
   Future<void> startSession({
     required String name,
     required double antennaHeight,
+    required Stream<GnssRawMeasurement> rawStream,
     LatLng? approxPosition,
     String? notes,
   }) async {
@@ -87,16 +87,14 @@ class RawGnssLogger extends ChangeNotifier {
     // Metaadat mentése
     await _metaFile!.writeAsString(jsonEncode(_currentSession!.toJson()));
 
-    _measurementSub = _rawGnss.gnssMeasurementEvents.listen((model) {
-      final ts = DateTime.now().toIso8601String();
+    _measurementSub = rawStream.listen((m) {
+      final ts = m.timestamp.toIso8601String();
 
-      for (var m in (model.measurements ?? [])) {
-        final line = '$ts,${m.svid},${m.constellationType},${m.accumulatedDeltaRangeMeters ?? ""},'
-            '${m.accumulatedDeltaRangeState ?? ""},${m.receivedSvTimeNanos ?? ""},${m.cn0DbHz ?? ""},'
-            '${m.carrierFrequencyHz ?? ""},${m.timeOffsetNanos ?? ""},${m.multipathIndicator ?? ""}\n';
-        
-        _logFile!.writeAsString(line, mode: FileMode.append);
-      }
+      final line = '$ts,${m.svid},${m.constellationType},${m.accumulatedDeltaRangeMeters ?? ""},'
+          '${m.accumulatedDeltaRangeState ?? ""},${m.receivedSvTimeNanos ?? ""},${m.cn0DbHz ?? ""},'
+          '${m.carrierFrequencyHz ?? ""},${m.timeOffsetNanos ?? ""},${m.multipathIndicator ?? ""}\n';
+      
+      _logFile!.writeAsString(line, mode: FileMode.append);
     });
 
     _isLogging = true;

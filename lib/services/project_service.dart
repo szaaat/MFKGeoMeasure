@@ -754,6 +754,17 @@ class ProjectService extends ChangeNotifier {
       if (last.correctionAge != null) {
         feature.calculatedStats['Correction Age'] = "${last.correctionAge}s";
       }
+      if (last.receiverName != null) {
+        feature.calculatedStats['Receiver'] = last.receiverName;
+      }
+      if (last.stationId != null) {
+        feature.calculatedStats['Station ID'] = last.stationId;
+      }
+      feature.calculatedStats['Sats Used'] = last.satellitesUsed;
+      if (last.pdop != null) feature.calculatedStats['PDOP'] = last.pdop;
+      if (last.hdop != null) feature.calculatedStats['HDOP'] = last.hdop;
+      if (last.vdop != null) feature.calculatedStats['VDOP'] = last.vdop;
+      feature.calculatedStats['Timestamp Source'] = last.timestampSource.name;
     }
 
     _activeLayer!.features.add(feature);

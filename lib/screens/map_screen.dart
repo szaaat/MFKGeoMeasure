@@ -1209,9 +1209,10 @@ class _MapScreenState extends State<MapScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () {
-              gnssService.rawLogger.startSession(
+            gnssService.rawLogger.startSession(
                 name: nameCtrl.text,
                 antennaHeight: projectService.antennaHeight,
+                rawStream: gnssService.activeProvider!.rawMeasurementStream,
                 approxPosition: _currentLocation,
                 notes: notesCtrl.text,
               );

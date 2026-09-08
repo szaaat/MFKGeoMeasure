@@ -1,8 +1,12 @@
 import '../../models/gnss_fix.dart';
+import '../../models/gnss_raw_measurement.dart';
 
 abstract class GnssProvider {
   /// Stream az érkező pozícióadatokról
   Stream<GnssFix> get fixStream;
+
+  /// Stream a nyers műholdas mérésekről (PPK-hoz)
+  Stream<GnssRawMeasurement> get rawMeasurementStream;
 
   /// Támogatja-e a korrekciós adatok fogadását (RTCM)
   bool get supportsRtcmInput;

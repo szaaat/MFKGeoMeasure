@@ -39,6 +39,8 @@ class GnssInfoService extends ChangeNotifier {
   StreamSubscription? _fixSubscription;
   StreamSubscription? _ggaSubscription;
   
+  // Note: Internal status monitoring for Android still uses RawGnss directly for now
+  // until GnssProvider is fully extended for status unification.
   final _rawGnss = RawGnss();
   final RawGnssLogger rawLogger = RawGnssLogger();
   

@@ -10,7 +10,7 @@ class NmeaParser {
   int _satellitesUsed = 0;
   
   // RMC-ből jövő dátum/idő
-  DateTime? _lastDateTime;
+  DateTime? _lastGnsDateTime;
 
   /// Feldolgoz egyetlen NMEA mondatot és visszaad egy [GnssFix]-et, ha a mondat pozíciót tartalmazott.
   GnssFix? parse(String sentence, {required GnssSource source, required GnssConnectionType connectionType}) {
@@ -91,6 +91,19 @@ class NmeaParser {
     double? age = double.tryParse(parts[13]);
     String? station = parts[14];
 
+    // Timestamp parsing
+    DateTime timestamp = DateTime.now();
+    TimestampSource tsSource = TimestampSource.device;
+
+    final ggaTime = parts[1];
+    if (ggaTime.isNotEmpty && _lastGnsDateTime != null) {
+      final parsed = _combineDateAndTime(_lastGnsDateTime!, ggaTime);
+      if (parsed != null) {
+        timestamp = parsed;
+        tsSource = TimestampSource.gnss;
+      }
+    }
+
     debugPrint('[NMEA-PARSER] Quality: $quality (Fix: ${fixType.name}, RTK: ${rtkStatus.name}), Sats: $_satellitesUsed, Age: $age');
 
     return GnssFix(
@@ -112,17 +125,77 @@ class NmeaParser {
       stationId: station,
       source: source,
       connectionType: connectionType,
-      timestamp: _lastDateTime ?? DateTime.now(),
+      timestamp: timestamp,
+      timestampSource: tsSource,
     );
   }
 
   void _parseRMC(List<String> parts) {
     if (parts.length < 10) return;
-    // RMC dátum/idő frissítése a pontos timestamphez
-    // parts[1]: time (HHMMSS.ss)
-    // parts[9]: date (DDMMYY)
-    // Egyelőre csak a DateTime.now()-t használjuk a komplexitás csökkentésére, 
-    // de a helyes implementáció ezt parse-olná.
+    
+    final timeStr = parts[1];
+    final dateStr = parts[9];
+    
+    if (timeStr.isNotEmpty && dateStr.isNotEmpty) {
+      final parsed = _parseRmcDateTime(dateStr, timeStr);
+      if (parsed != null) {
+        _lastGnsDateTime = parsed;
+      }
+    }
+  }
+
+  DateTime? _parseRmcDateTime(String datePart, String timePart) {
+    if (datePart.length != 6 || timePart.length < 6) return null;
+    try {
+      int day = int.parse(datePart.substring(0, 2));
+      int month = int.parse(datePart.substring(2, 4));
+      int year = int.parse(datePart.substring(4, 6)) + 2000;
+      
+      int hour = int.parse(timePart.substring(0, 2));
+      int minute = int.parse(timePart.substring(2, 4));
+      int second = int.parse(timePart.substring(4, 6));
+      int millis = 0;
+      if (timePart.contains('.')) {
+        double sub = double.parse('0${timePart.substring(timePart.indexOf('.'))}');
+        millis = (sub * 1000).round();
+      }
+      
+      return DateTime.utc(year, month, day, hour, minute, second, millis);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  DateTime? _combineDateAndTime(DateTime lastDate, String ggaTime) {
+    if (ggaTime.length < 6) return null;
+    try {
+      int hour = int.parse(ggaTime.substring(0, 2));
+      int minute = int.parse(ggaTime.substring(2, 4));
+      int second = int.parse(ggaTime.substring(4, 6));
+      int millis = 0;
+      if (ggaTime.contains('.')) {
+        double sub = double.parse('0${ggaTime.substring(ggaTime.indexOf('.'))}');
+        millis = (sub * 1000).round();
+      }
+
+      // Midnight rollover check
+      // If GGA hour is 0 and RMC hour was 23, we should probably increment the date.
+      // But typically RMC and GGA arrive within seconds.
+      DateTime dt = DateTime.utc(lastDate.year, lastDate.month, lastDate.day, hour, minute, second, millis);
+      
+      // If the difference is huge (e.g. > 12h), adjust date
+      if (dt.difference(lastDate).inHours.abs() > 12) {
+         if (hour < 12 && lastDate.hour > 12) {
+           dt = dt.add(const Duration(days: 1));
+         } else if (hour > 12 && lastDate.hour < 12) {
+           dt = dt.subtract(const Duration(days: 1));
+         }
+      }
+      
+      return dt;
+    } catch (e) {
+      return null;
+    }
   }
 
   void _parseGSA(List<String> parts) {

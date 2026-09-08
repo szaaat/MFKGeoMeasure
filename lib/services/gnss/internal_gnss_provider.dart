@@ -1,19 +1,28 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:geolocator/geolocator.dart';
+import 'package:raw_gnss/raw_gnss.dart';
 import '../../models/gnss_fix.dart';
+import '../../models/gnss_raw_measurement.dart';
 import 'gnss_provider.dart';
 import '../geoid_service.dart';
 
 class InternalGnssProvider implements GnssProvider {
   final _fixController = StreamController<GnssFix>.broadcast();
+  final _rawController = StreamController<GnssRawMeasurement>.broadcast();
   StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription? _rawSubscription;
+  
+  final _rawGnss = RawGnss();
   final GeoidCorrectionService? _geoidService;
 
   InternalGnssProvider({GeoidCorrectionService? geoidService}) : _geoidService = geoidService;
 
   @override
   Stream<GnssFix> get fixStream => _fixController.stream;
+
+  @override
+  Stream<GnssRawMeasurement> get rawMeasurementStream => _rawController.stream;
 
   @override
   bool get supportsRtcmInput => false;
@@ -46,12 +55,34 @@ class InternalGnssProvider implements GnssProvider {
         .listen((Position position) {
       _fixController.add(_mapPositionToGnssFix(position));
     });
+
+    if (Platform.isAndroid) {
+      _rawSubscription = _rawGnss.gnssMeasurementEvents.listen((model) {
+        final now = DateTime.now();
+        for (var m in (model.measurements ?? [])) {
+          _rawController.add(GnssRawMeasurement(
+            timestamp: now,
+            svid: m.svid ?? 0,
+            constellationType: m.constellationType ?? 0,
+            accumulatedDeltaRangeMeters: m.accumulatedDeltaRangeMeters,
+            accumulatedDeltaRangeState: m.accumulatedDeltaRangeState,
+            receivedSvTimeNanos: m.receivedSvTimeNanos,
+            cn0DbHz: m.cn0DbHz,
+            carrierFrequencyHz: m.carrierFrequencyHz,
+            timeOffsetNanos: m.timeOffsetNanos,
+            multipathIndicator: m.multipathIndicator,
+          ));
+        }
+      });
+    }
   }
 
   @override
   Future<void> disconnect() async {
     await _positionSubscription?.cancel();
+    await _rawSubscription?.cancel();
     _positionSubscription = null;
+    _rawSubscription = null;
   }
 
   @override
@@ -63,6 +94,7 @@ class InternalGnssProvider implements GnssProvider {
   void dispose() {
     disconnect();
     _fixController.close();
+    _rawController.close();
   }
 
   GnssFix _mapPositionToGnssFix(Position pos) {
