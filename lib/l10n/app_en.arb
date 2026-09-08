@@ -1,0 +1,332 @@
+{
+  "appTitle": "MFK GeoMeasure",
+  "mapScreenTitle": "Map View",
+  "settingsTitle": "Settings",
+  "changeLanguage": "Change Language",
+  "startRecording": "Start Recording",
+  "stopRecording": "Stop Recording",
+  "gpsAccuracy": "Accuracy: {accuracy} m",
+  "@gpsAccuracy": {
+    "placeholders": {
+      "accuracy": {
+        "type": "String"
+      }
+    }
+  },
+  "currentAltitude": "Height (Ortho): {alt} m",
+  "@currentAltitude": {
+    "placeholders": {
+      "alt": {
+        "type": "String"
+      }
+    }
+  },
+
+  "slogan": "Geography is the whole world!",
+  "startMap": "Start Map",
+  "startLearning": "Geodetic Exercises",
+  "uniName": "University of Miskolc, MFK",
+  "institute": "Institute of Geography and Geoinformatics",
+
+  "noProject": "No Project",
+  "noLayer": "No Layer",
+  "offlineMaps": "Offline Maps",
+  "manageDownloads": "Manage downloaded areas.",
+  "deleteStorage": "CLEAR STORAGE",
+  "deleteConfirmTitle": "Are you sure?",
+  "deleteConfirmBody": "This will delete all offline maps from the phone.",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "download": "Download",
+  "newDownload": "NEW DOWNLOAD",
+  "saveArea": "Save Offline Area",
+  "selectDetail": "Select detail level!",
+  "zoomLevels": "Zoom levels",
+  "tileCount": "Tile count",
+  "attentionHuge": "WARNING: This is huge (>200k)! Expect GBs of data and hours of download. Wi-Fi only!",
+  "attentionLarge": "This generates a lot of data (>50k). Download may take minutes.",
+  "braveDownload": "I AM BRAVE (DOWNLOAD)",
+  "startDownload": "START DOWNLOAD",
+  "downloading": "Downloading...",
+  "dontClose": "Please DO NOT close the app!",
+  "keepScreenOn": "Keep the screen on.",
+  "abort": "Abort",
+  "downloadDone": "Download finished!",
+  "downloadAborted": "Download aborted.",
+  "storageCleared": "Storage cleared!",
+  "error": "Error",
+  "noGps": "No GPS signal!",
+  "save": "Save",
+  "name": "Name",
+  "description": "Description",
+  "done": "DONE",
+  "projectsLayers": "Projects and Layers",
+  "newElement": "New Item",
+  "createWhat": "What do you want to create",
+  "newProject": "NEW PROJECT",
+  "newLayer": "NEW LAYER",
+  "activeProject": "Active project",
+  "export": "Export",
+  "mapType": "Map Type",
+  "satellite": "Satellite (Google)",
+  "hiking": "Hiking Trails (Hu)",
+  "osm": "OpenStreetMap",
+  "searchingGps": "Searching for GPS signal...",
+  "point": "Point",
+  "line": "Line",
+  "polygon": "Polygon",
+  "saveItem": "Save",
+  "searchCoord": "Coordinate Search",
+  "invalidCoord": "Invalid format! WGS84 or EOV required.",
+  "geodeticSettings": "Geodetic Settings",
+  "antennaHeight": "Antenna height (m)",
+  "requiredAccuracy": "Required accuracy (m)",
+  "fastRecord": "Fast record",
+  "fastRecordDesc": "Instant save with current position",
+  "avgRecord": "Averaged measurement (15s)",
+  "avgRecordDesc": "More accurate position with static measurement",
+  "measuringInProgress": "Measurement in progress...",
+  "keepStill": "Please keep the device still!",
+  "stakeoutCheck": "Check measurement on point",
+  "ant": "Ant",
+  "searched": "Searched",
+  "recordedFromSearch": "Recorded from search",
+  "pointSaved": "Point saved to project!",
+  "searchAndSave": "Search and Save",
+  "target": "Target",
+  "close": "Close",
+  "stakeout": "Stakeout",
+  "bestAcc": "Best accuracy:",
+  "avgAcc": "Average accuracy:",
+  "satellites": "Satellites",
+  "ppkStartTitle": "Start PPK Logging",
+  "ppkNameLabel": "Session name",
+  "ppkNotesLabel": "Notes",
+  "ppkStartBtn": "START",
+
+  "resection": "Resection",
+  "area": "Area Calculation",
+  "inverse": "Inverse Task",
+  "angularIntersection": "Angular Intersection",
+  "distanceIntersection": "Distance Intersection",
+
+  "result": "RESULT",
+  "derivation": "Mathematical derivation",
+  "derivationShow": "Show detailed calculation (derivation)",
+  "derivationHide": "Hide derivation",
+
+  "campusMiskolc": "Miskolc (ME MFK)",
+  "campusSzekesfehervar": "Fehervar (ÓE AMK)",
+  "selectLocation": "Select location (Campus):",
+  "taskGoal": "Task goal:",
+  "taskSteps": "Solution steps:",
+  "check": "CHECK",
+  "excellent": "Excellent",
+  "good": "Good",
+  "retry": "RETRY",
+
+  "whatToCalculate": "What do you want to calculate?",
+  "inverseDesc": "Two points → distance",
+  "angularDesc": "Two directions → point",
+  "distanceDesc": "Two distances → point",
+  "resectionDesc": "Three points → station",
+  "areaDesc": "Points → area",
+  "noTypeSelected": "No calculation type selected",
+  "selectPointTarget": "Select: {point}",
+  "@selectPointTarget": {
+    "placeholders": {
+      "point": {
+        "type": "String"
+      }
+    }
+  },
+  "distanceLabel": "Distance",
+  "bearingLabel": "Bearing (WCB)",
+  "resultY": "Result Y",
+  "resultX": "Result X",
+  "intersection1Y": "Intersection 1 Y",
+  "intersection1X": "Intersection 1 X",
+  "intersection2Y": "Intersection 2 Y",
+  "intersection2X": "Intersection 2 X",
+  "areaLabel": "Area",
+  "radius1": "Radius 1 (m)",
+  "radius2": "Radius 2 (m)",
+  "bearing1": "Bearing 1 (WCB °)",
+  "bearing2": "Bearing 2 (WCB °)",
+  "measuredBearingP1": "Measured bearing to P1 (°)",
+  "measuredBearingP2": "Measured bearing to P2 (°)",
+  "measuredBearingP3": "Measured bearing to P3 (°)",
+  "areaPoints": "Area points",
+  "add": "Add",
+  "newPoint": "New point",
+  "noPointsAdded": "No points added.",
+  "sourceLabel": "Source: {src}",
+  "@sourceLabel": {
+    "placeholders": {
+      "src": {
+        "type": "String"
+      }
+    }
+  },
+  "selectSourceFor": "Select source for {label}",
+  "@selectSourceFor": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "pickFromMap": "Select from map",
+  "pickFromMapDesc": "Tap desired location on map",
+  "currentGnss": "Current GNSS position",
+  "currentGnssDesc": "Read phone GPS coordinates",
+  "pickFromProject": "Select from project",
+  "pickFromProjectDesc": "Load previously saved points",
+  "fetchingGps": "Fetching GPS position...",
+  "noPointsInActiveLayers": "No points on active layers!",
+  "selectPointTitle": "Select Point",
+  "waitingForInput": "Waiting for input data...",
+  "hideKeyboard": "Hide keyboard",
+  "mathDerivation": "Mathematical derivation",
+  "sourceMap": "Map",
+  "sourceGnss": "GNSS (GPS)",
+  "sourceProject": "Project",
+  "selectBtn": "Select",
+  "quadrantName": "{quadrant} quadrant",
+  "@quadrantName": {
+    "placeholders": {
+      "quadrant": {
+        "type": "String"
+      }
+    }
+  },
+  "gisImportTooltip": "GIS Import (DXF, KML, GPX)",
+  "itemsImported": "{count} items imported!",
+  "@itemsImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTooltip": "Settings",
+  "templateLabel": "Data template",
+  "takePhoto": "Take photo",
+  "skyplotTitle": "GNSS Skyplot",
+  "skyplotAndroidOnly": "Skyplot is currently only available on Android devices.",
+  "searchingSatellites": "Searching for satellite data...",
+  "satUsedLegend": "Solid circle: Used in fix",
+  "loadVectorMbtiles": "Load Vector MBTiles",
+  "notLoaded": "Not loaded",
+  "vectorMode": "Vector mode",
+  "invalidSavedCoord": "Error: Invalid saved coordinate!",
+  "gpsErrorPerm": "GPS error: Please enable location in settings!",
+  "measurementTime": "Measurement {time}",
+  "@measurementTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "taskSolveTitle": "Solve Task",
+  "givenData": "GIVEN DATA:",
+  "calculatedResults": "CALCULATED RESULTS:",
+  "fillAllFields": "Please fill in all fields!",
+  "differences": "Differences (Measured - True):",
+  "gradeError": "Error",
+  "gradeExcellent": "Excellent",
+  "gradeGood": "Good",
+  "msgError": "Calculation inaccurate. Check formulas!",
+  "msgExcellent": "Congratulations! Engineering level precision.",
+  "msgGood": "Close, but there is a slight rounding or calculation error.",
+  "locationLabel": "Location: {campus}",
+  "@locationLabel": {
+    "placeholders": {
+      "campus": {
+        "type": "String"
+      }
+    }
+  },
+
+  "templateGeneral": "General",
+  "templateWaterManhole": "Water Manhole",
+  "templateBoundaryStone": "Boundary Stone",
+  "templateUtilityPole": "Utility Pole",
+
+  "fieldMaterial": "Material",
+  "fieldDiameter": "Diameter (mm)",
+  "fieldDepth": "Depth (m)",
+  "fieldCondition": "Cover condition",
+  "fieldType": "Type",
+  "fieldStatus": "Status",
+  "fieldVoltage": "Voltage",
+  "fieldHasLamp": "Has lamp?",
+
+  "optConcrete": "Concrete",
+  "optPlastic": "Plastic",
+  "optBrick": "Brick",
+  "optCastIron": "Cast Iron",
+  "optGood": "Good",
+  "optDamaged": "Damaged",
+  "optMissing": "Missing",
+  "optConcreteStone": "Concrete Stone",
+  "optGranite": "Granite",
+  "optIronPipe": "Iron Pipe",
+  "optPlasticPeg": "Plastic Peg",
+  "optIntact": "Intact",
+  "optTilted": "Tilted",
+  "optDisplaced": "Displaced",
+  "optUncertain": "Uncertain",
+  "optWood": "Wood",
+  "optIron": "Iron",
+  "optYes": "Yes",
+  "optNo": "No",
+
+  "addCustomField": "Add Custom Field",
+  "newFieldName": "New field name",
+  "customFields": "Custom Fields",
+  "addColumn": "Add Column",
+  "gnssSource": "GNSS Source",
+  "internalGps": "Internal GPS",
+  "externalGnss": "External GNSS",
+  "bluetoothClassic": "Bluetooth Classic",
+  "bluetoothBle": "Bluetooth Low Energy",
+  "usbSerial": "USB Serial",
+  "scanningDevices": "Scanning for devices...",
+  "noDevicesFound": "No devices found",
+  "deviceAddress": "Address: {address}",
+  "@deviceAddress": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "fixStatus": "Fix Status",
+  "rtkStatus": "RTK Status",
+  "correctionAge": "Correction Age: {age} s",
+  "@correctionAge": {
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "ntripSettings": "NTRIP Settings",
+  "fetchMountpoints": "Fetch Mountpoints",
+  "selectMountpoint": "Select Mountpoint",
+  "noMountpointsFound": "No mountpoints found",
+  "profiles": "Profiles",
+  "addProfile": "Add Profile",
+  "editProfile": "Edit Profile",
+  "deleteProfile": "Delete Profile",
+  "profileName": "Profile Name",
+  "bitrate": "Bitrate",
+  "totalData": "Total Data",
+  "requireStableFix": "Require stable RTK FIX",
+  "stabilityThreshold": "Stability threshold (s)",
+  "lastGgaSent": "Last GGA sent",
+  "lastRtcmReceived": "Last correction received",
+  "reconnecting": "Reconnecting..."
+}

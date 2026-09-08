@@ -1,0 +1,332 @@
+{
+  "appTitle": "MFK GeoMeasure",
+  "mapScreenTitle": "Térképnézet",
+  "settingsTitle": "Beállítások",
+  "changeLanguage": "Nyelv váltása",
+  "startRecording": "Rögzítés indítása",
+  "stopRecording": "Rögzítés leállítása",
+  "gpsAccuracy": "Pontosság: {accuracy} m",
+  "@gpsAccuracy": {
+    "placeholders": {
+      "accuracy": {
+        "type": "String"
+      }
+    }
+  },
+  "currentAltitude": "Magasság (Ortho): {alt} m",
+  "@currentAltitude": {
+    "placeholders": {
+      "alt": {
+        "type": "String"
+      }
+    }
+  },
+
+  "slogan": "Földrajz az egész világ!",
+  "startMap": "Térkép Indítása",
+  "startLearning": "Geodéziai Gyakorlatok",
+  "uniName": "Miskolci Egyetem, MFK",
+  "institute": "Földrajz-Geoinformatika Intézet",
+
+  "noProject": "Nincs Projekt",
+  "noLayer": "Nincs Réteg",
+  "offlineMaps": "Offline Térképek",
+  "manageDownloads": "Kezeld a letöltött területeket.",
+  "deleteStorage": "TÁRHELY TÖRLÉSE",
+  "deleteConfirmTitle": "Biztosan törlöd?",
+  "deleteConfirmBody": "Ez az összes letöltött offline térképet törli a telefonról.",
+  "cancel": "Mégse",
+  "delete": "Törlés",
+  "download": "Letöltés",
+  "newDownload": "ÚJ LETÖLTÉS",
+  "saveArea": "Offline terület mentése",
+  "selectDetail": "Válaszd ki a részletességet!",
+  "zoomLevels": "Zoom szintek",
+  "tileCount": "Csempék száma",
+  "attentionHuge": "FIGYELEM: Ez rendkívül sok (>200k)! Több GB tárhely és órákig tartó letöltés várható. Csak Wi-Fi-n ajánlott!",
+  "attentionLarge": "Ez sok adatot (>50k) generál. A letöltés percekig tarthat.",
+  "braveDownload": "BÁTOR VAGYOK (LETÖLTÉS)",
+  "startDownload": "LETÖLTÉS INDÍTÁSA",
+  "downloading": "Letöltés folyamatban...",
+  "dontClose": "Kérlek NE zárd be az alkalmazást!",
+  "keepScreenOn": "A képernyő bekapcsolva maradjon.",
+  "abort": "Megszakítás",
+  "downloadDone": "Letöltés kész!",
+  "downloadAborted": "Letöltés megszakítva.",
+  "storageCleared": "Tárhely felszabadítva!",
+  "error": "Hiba",
+  "noGps": "Nincs GPS jel!",
+  "save": "Mentés",
+  "name": "Név",
+  "description": "Leírás",
+  "done": "KÉSZ",
+  "projectsLayers": "Projektek és Rétegek",
+  "newElement": "Új elem",
+  "createWhat": "Mit szeretnél létrehozni",
+  "newProject": "ÚJ PROJEKT",
+  "newLayer": "ÚJ RÉTEG",
+  "activeProject": "Aktív projekt",
+  "export": "Export",
+  "mapType": "Térkép típusa",
+  "satellite": "Műhold (Google)",
+  "hiking": "Turistautak (Hu)",
+  "osm": "OpenStreetMap",
+  "searchingGps": "GPS jel keresése...",
+  "point": "Pont",
+  "line": "Vonal",
+  "polygon": "Poligon",
+  "saveItem": "mentése",
+  "searchCoord": "Koordináta kereső",
+  "invalidCoord": "Érvénytelen formátum! WGS84 vagy EOV szükséges.",
+  "geodeticSettings": "Geodéziai Beállítások",
+  "antennaHeight": "Antenna magasság (m)",
+  "requiredAccuracy": "Elvárt pontosság (m)",
+  "fastRecord": "Gyors rögzítés",
+  "fastRecordDesc": "Azonnali mentés a jelenlegi pozícióval",
+  "avgRecord": "Átlagolt mérés (15 mp)",
+  "avgRecordDesc": "Pontosabb pozíció statikus méréssel",
+  "measuringInProgress": "Mérés folyamatban...",
+  "keepStill": "Kérjük, tartsa mozdulatlanul az eszközt!",
+  "stakeoutCheck": "Ellenőrző mérés a ponton",
+  "ant": "Ant",
+  "searched": "Keresett",
+  "recordedFromSearch": "Keresőből rögzítve",
+  "pointSaved": "Pont elmentve a projektbe!",
+  "searchAndSave": "Keresés és Mentés",
+  "target": "Cél",
+  "close": "Bezárás",
+  "stakeout": "Kitűzés",
+  "bestAcc": "Legjobb hiba:",
+  "avgAcc": "Átlagos hiba:",
+  "satellites": "Műholdak",
+  "ppkStartTitle": "PPK Mérés Indítása",
+  "ppkNameLabel": "Mérés neve",
+  "ppkNotesLabel": "Jegyzet",
+  "ppkStartBtn": "INDÍTÁS",
+
+  "resection": "Hátrametszés",
+  "area": "Területszámítás",
+  "inverse": "Inverz feladat",
+  "angularIntersection": "Iránymetszés",
+  "distanceIntersection": "Ívmetszés",
+
+  "result": "EREDMÉNY",
+  "derivation": "Matematikai levezetés",
+  "derivationShow": "Részletes számítás (levezetés) mutatása",
+  "derivationHide": "Levezetés elrejtése",
+
+  "campusMiskolc": "Miskolc (ME MFK)",
+  "campusSzekesfehervar": "Fehérvár (ÓE AMK)",
+  "selectLocation": "Válassz helyszínt (Campust):",
+  "taskGoal": "Feladat célja:",
+  "taskSteps": "Megoldás menete:",
+  "check": "ELLENŐRZÉS",
+  "excellent": "Kiváló",
+  "good": "Jó",
+  "retry": "JAVÍTÁS",
+
+  "whatToCalculate": "Mit szeretnél meghatározni?",
+  "inverseDesc": "Két pont → távolság",
+  "angularDesc": "Két irány → pont",
+  "distanceDesc": "Két távolság → pont",
+  "resectionDesc": "Három pont → álláspont",
+  "areaDesc": "Pontok → terület",
+  "noTypeSelected": "Nincs kiválasztott típus",
+  "selectPointTarget": "Válassz: {point}",
+  "@selectPointTarget": {
+    "placeholders": {
+      "point": {
+        "type": "String"
+      }
+    }
+  },
+  "distanceLabel": "Távolság",
+  "bearingLabel": "Irányszög (WCB)",
+  "resultY": "Eredmény Y",
+  "resultX": "Eredmény X",
+  "intersection1Y": "Metszéspont 1 Y",
+  "intersection1X": "Metszéspont 1 X",
+  "intersection2Y": "Metszéspont 2 Y",
+  "intersection2X": "Metszéspont 2 X",
+  "areaLabel": "Terület",
+  "radius1": "Sugár 1 (m)",
+  "radius2": "Sugár 2 (m)",
+  "bearing1": "Irányszög 1 (WCB °)",
+  "bearing2": "Irányszög 2 (WCB °)",
+  "measuredBearingP1": "Mért irány P1-re (°)",
+  "measuredBearingP2": "Mért irány P2-re (°)",
+  "measuredBearingP3": "Mért irány P3-re (°)",
+  "areaPoints": "Terület pontjai",
+  "add": "Hozzáadás",
+  "newPoint": "Új pont",
+  "noPointsAdded": "Nincsenek pontok felvéve.",
+  "sourceLabel": "Forrás: {src}",
+  "@sourceLabel": {
+    "placeholders": {
+      "src": {
+        "type": "String"
+      }
+    }
+  },
+  "selectSourceFor": "{label} forrásának kiválasztása",
+  "@selectSourceFor": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "pickFromMap": "Térképről választok",
+  "pickFromMapDesc": "Bökj rá a kívánt helyre a térképen",
+  "currentGnss": "Jelenlegi GNSS pozíció",
+  "currentGnssDesc": "A telefon GPS koordinátáinak beolvasása",
+  "pickFromProject": "Választás projektből",
+  "pickFromProjectDesc": "Már elmentett pontok betöltése",
+  "fetchingGps": "GPS pozíció lekérése...",
+  "noPointsInActiveLayers": "Nincsenek pontok az aktív rétegeken!",
+  "selectPointTitle": "Pont kiválasztása",
+  "waitingForInput": "Várom a bemeneti adatokat...",
+  "hideKeyboard": "Billentyűzet elrejtése",
+  "mathDerivation": "Matematikai levezetés",
+  "sourceMap": "Térkép",
+  "sourceGnss": "GNSS (GPS)",
+  "sourceProject": "Projekt",
+  "selectBtn": "Kiválasztás",
+  "quadrantName": "{quadrant} síknegyed",
+  "@quadrantName": {
+    "placeholders": {
+      "quadrant": {
+        "type": "String"
+      }
+    }
+  },
+  "gisImportTooltip": "GIS Import (DXF, KML, GPX)",
+  "itemsImported": "{count} elem importálva!",
+  "@itemsImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTooltip": "Beállítások",
+  "templateLabel": "Adatlap sablon",
+  "takePhoto": "Fotó készítése",
+  "skyplotTitle": "GNSS Skyplot",
+  "skyplotAndroidOnly": "A Skyplot jelenleg csak Android eszközökön érhető el.",
+  "searchingSatellites": "Műhold adatok keresése...",
+  "satUsedLegend": "Teli kör: Mérésben használt",
+  "loadVectorMbtiles": "Vektoros MBTiles betöltése",
+  "notLoaded": "Nincs betöltve",
+  "vectorMode": "Vektoros mód",
+  "invalidSavedCoord": "Hiba: Érvénytelen mentett koordináta!",
+  "gpsErrorPerm": "GPS hiba: Kérlek engedélyezd a helymeghatározást a beállításokban!",
+  "measurementTime": "Mérés {time}",
+  "@measurementTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "taskSolveTitle": "Feladat Megoldása",
+  "givenData": "ADOTT ADATOK:",
+  "calculatedResults": "SZÁMÍTOTT EREDMÉNYEK:",
+  "fillAllFields": "Kérlek töltsd ki az összes mezőt!",
+  "differences": "Eltérések (Mért - Valós):",
+  "gradeError": "Hiba",
+  "gradeExcellent": "Kiváló",
+  "gradeGood": "Jó",
+  "msgError": "A számítás pontatlan. Ellenőrizd a képleteket!",
+  "msgExcellent": "Gratulálunk! Mérnöki pontosságú megoldás.",
+  "msgGood": "Közel jársz, de van egy kis kerekítési vagy számítási pontatlanság.",
+  "locationLabel": "Helyszín: {campus}",
+  "@locationLabel": {
+    "placeholders": {
+      "campus": {
+        "type": "String"
+      }
+    }
+  },
+
+  "templateGeneral": "Általános",
+  "templateWaterManhole": "Vízmű akna",
+  "templateBoundaryStone": "Határkő",
+  "templateUtilityPole": "Elektromos oszlop",
+
+  "fieldMaterial": "Anyaga",
+  "fieldDiameter": "Átmérő (mm)",
+  "fieldDepth": "Mélység (m)",
+  "fieldCondition": "Fedlap állapota",
+  "fieldType": "Típusa",
+  "fieldStatus": "Állapota",
+  "fieldVoltage": "Feszültség",
+  "fieldHasLamp": "Lámpatest van?",
+
+  "optConcrete": "Beton",
+  "optPlastic": "Műanyag",
+  "optBrick": "Tégla",
+  "optCastIron": "Öntöttvas",
+  "optGood": "Jó",
+  "optDamaged": "Sérült",
+  "optMissing": "Hiányzik",
+  "optConcreteStone": "Beton kő",
+  "optGranite": "Gránit",
+  "optIronPipe": "Vascső",
+  "optPlasticPeg": "Műanyag szeg",
+  "optIntact": "Ép",
+  "optTilted": "Megdőlt",
+  "optDisplaced": "Kifordult",
+  "optUncertain": "Bizonytalan",
+  "optWood": "Fa",
+  "optIron": "Vas",
+  "optYes": "Igen",
+  "optNo": "Nem",
+
+  "addCustomField": "Egyedi mező hozzáadása",
+  "newFieldName": "Új mező neve",
+  "customFields": "Egyedi mezők",
+  "addColumn": "Oszlop hozzáadása",
+  "gnssSource": "GNSS Forrás",
+  "internalGps": "Telefon GPS",
+  "externalGnss": "Külső GNSS",
+  "bluetoothClassic": "Bluetooth Classic",
+  "bluetoothBle": "Bluetooth Low Energy",
+  "usbSerial": "USB Serial",
+  "scanningDevices": "Eszközök keresése...",
+  "noDevicesFound": "Nem található eszköz",
+  "deviceAddress": "Cím: {address}",
+  "@deviceAddress": {
+    "placeholders": {
+      "address": {
+        "type": "String"
+      }
+    }
+  },
+  "fixStatus": "Fix Állapot",
+  "rtkStatus": "RTK Állapot",
+  "correctionAge": "Korrekció kora: {age} s",
+  "@correctionAge": {
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "ntripSettings": "NTRIP Beállítások",
+  "fetchMountpoints": "Mountpointok lekérése",
+  "selectMountpoint": "Válassz mountpointot",
+  "noMountpointsFound": "Nem található mountpoint",
+  "profiles": "Profilok",
+  "addProfile": "Új profil",
+  "editProfile": "Profil szerkesztése",
+  "deleteProfile": "Profil törlése",
+  "profileName": "Profil neve",
+  "bitrate": "Adatsebesség",
+  "totalData": "Összes adat",
+  "requireStableFix": "Stabil RTK FIX elvárása",
+  "stabilityThreshold": "Stabilitási küszöb (s)",
+  "lastGgaSent": "Utolsó GGA küldve",
+  "lastRtcmReceived": "Utolsó korrekció érkezett",
+  "reconnecting": "Újracsatlakozás..."
+}

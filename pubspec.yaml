@@ -1,0 +1,83 @@
+name: mfk_geomeasure
+description: Alkalmazott Terinformatika oktatasi app.
+publish_to: 'none'
+version: 1.1.0+10
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_compass: ^0.8.1  # Vagy az aktuális legfrissebb verzió
+
+  # Alapvető csomagok
+  intl: ^0.20.2
+  provider: ^6.1.1
+
+  # Offline Térkép & Letöltés
+  flutter_cache_manager: ^3.3.1
+  cached_network_image: ^3.3.1 # <--- EZ HIÁNYZOTT!
+  dio: ^5.4.0
+
+  # Térkép & GIS
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  proj4dart: ^2.1.0
+
+  # GPS & Engedélyek
+  geolocator: ^10.1.0
+  permission_handler: ^11.0.1
+  raw_gnss: ^1.1.0
+  
+  # Bluetooth & USB for External GNSS
+  flutter_blue_plus: ^1.31.0
+  flutter_bluetooth_serial: ^0.4.0
+  usb_serial: ^0.4.0
+  flutter_secure_storage: ^11.0.0
+
+  # Adatkezelés & Export
+  uuid: ^4.3.3
+  share_plus: ^13.3.0
+  path_provider: ^2.1.2
+  archive: ^3.6.1
+
+  # Geoid képfeldolgozás
+  image: 4.1.3
+
+  # UI
+  cupertino_icons: ^1.0.6
+  image_picker: ^1.1.2
+  native_exif: ^0.7.0
+  file_picker: ^12.2.0
+  dxf: ^3.1.3
+  sensors_plus: ^7.0.0
+  geoxml: ^2.3.0
+  vector_map_tiles: ^7.0.0
+  vector_map_tiles_mbtiles: ^1.1.0
+  vector_tile_renderer: ^5.2.1
+  mbtiles: ^0.4.2
+  camera: 0.11.0+2
+  pdf: ^3.11.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/data/geoid_eht2014.tif
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/geography.jpg" # Itt keressük a képet
+  adaptive_icon_background: "#ffffff" # Fehér háttér Androidon
+  adaptive_icon_foreground: "assets/geography.jpg"
