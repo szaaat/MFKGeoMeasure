@@ -1,5 +1,18 @@
 # Changelog - MFK GeoMeasure
 
+## [1.1.1] - 2026-09-18
+
+### MFKRTK Integration & NTRIP Enhancements
+
+#### Features
+- **MFKRTK BLE Support:** Integrated professional-grade MFKRTK (Bynav M21 + ESP32-S3) receiver via binary-safe BLE transport.
+- **Protocol-Agnostic GNSS Path:** Support for mixed NMEA and raw Bynav binary data streams.
+- **Dynamic MTU & Chunking:** Transparent RTCM correction forwarding with dynamic MTU negotiation for stable BLE communication.
+- **Device Status Monitoring:** Real-time health diagnostics (Battery, Firmware, Tracking quality) via MFKRTK JSON status updates.
+- **NTRIP NEAR Support:** Enhanced NTRIP configuration with automatic station selection using NEAR/NEAR4 mount points.
+- **Immediate GGA Feedback:** Faster RTK convergence by sending initial position feedback immediately upon NTRIP connection.
+- **Built-in Centipede-RTK Profile:** Predefined profile for the Centipede RTK network.
+
 ## [1.1.0] - 2026-09-08
 
 ### Professional GNSS & Geodetic Field Measurement
@@ -32,4 +45,4 @@ The field test verified:
 *Note: Real-world RTK performance depends on GNSS hardware compatibility and NTRIP service availability.*
 
 ---
-Version: 1.1.0+10
+Version: 1.1.1+11

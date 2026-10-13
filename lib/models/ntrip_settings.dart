@@ -7,6 +7,7 @@ class NtripSettings {
   bool autoStopAfterMeasurement;
   bool requireStableFix;
   int stabilityThresholdSeconds;
+  bool allowFloatSave;
 
   NtripSettings({
     this.enabled = false,
@@ -15,6 +16,7 @@ class NtripSettings {
     this.autoStopAfterMeasurement = false,
     this.requireStableFix = false,
     this.stabilityThresholdSeconds = 5,
+    this.allowFloatSave = true,
   });
 
   NtripProfile? get activeProfile {
@@ -29,6 +31,7 @@ class NtripSettings {
     'autoStopAfterMeasurement': autoStopAfterMeasurement,
     'requireStableFix': requireStableFix,
     'stabilityThresholdSeconds': stabilityThresholdSeconds,
+    'allowFloatSave': allowFloatSave,
   };
 
   factory NtripSettings.fromJson(Map<String, dynamic> json) {
@@ -60,6 +63,7 @@ class NtripSettings {
       autoStopAfterMeasurement: json['autoStopAfterMeasurement'] ?? false,
       requireStableFix: json['requireStableFix'] ?? false,
       stabilityThresholdSeconds: json['stabilityThresholdSeconds'] ?? 5,
+      allowFloatSave: json['allowFloatSave'] ?? true,
     );
   }
 }

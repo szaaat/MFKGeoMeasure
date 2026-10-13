@@ -122,6 +122,14 @@ class NtripClient {
               debugPrint('[NTRIP] Connected to mountpoint: $mountpoint');
               headerFinished = true;
               _updateStatus(NtripStatus.connected);
+              
+              // Immediate feedback for NEAR mountpoints
+              if ((mountpoint == 'NEAR' || mountpoint == 'NEAR4') && _lastGga != null && _socket != null) {
+                _socket!.write('$_lastGga\r\n');
+                _lastGgaSent = DateTime.now();
+                debugPrint('[NTRIP] Immediate GGA feedback sent for $mountpoint');
+              }
+              
               _startGgaFeedback();
               _startDiagnostics();
               

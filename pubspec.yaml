@@ -1,7 +1,7 @@
 name: mfk_geomeasure
 description: Alkalmazott Terinformatika oktatasi app.
 publish_to: 'none'
-version: 1.1.0+10
+version: 1.1.1+11
 
 environment:
   sdk: '>=3.1.0 <4.0.0'
@@ -16,6 +16,7 @@ dependencies:
   # Alapvető csomagok
   intl: ^0.20.2
   provider: ^6.1.1
+  shared_preferences: ^2.2.2
 
   # Offline Térkép & Letöltés
   flutter_cache_manager: ^3.3.1
@@ -61,12 +62,21 @@ dependencies:
   mbtiles: ^0.4.2
   camera: 0.11.0+2
   pdf: ^3.11.1
+  shapefile: ^1.0.1
+  path: ^1.9.1
+  async: ^2.13.1
+  crypto: ^3.0.7
+  xml: ^6.5.0
+  sqlite3: ^2.9.4
+  sqlite3_flutter_libs: ^0.5.41
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true
@@ -74,6 +84,10 @@ flutter:
 
   assets:
     - assets/data/geoid_eht2014.tif
+    - assets/data/hu_bme_hd72corr.tif
+    - assets/data/hu_bme_hd72corr.f32
+    - assets/data/hu_bme_geoid2014.tif
+    - assets/data/hu_bme_geoid2014.f32
 
 flutter_icons:
   android: true

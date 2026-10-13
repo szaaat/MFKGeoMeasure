@@ -30,7 +30,9 @@ void main() {
         providers: [
           ChangeNotifierProvider(create: (_) => LanguageProvider()),
           Provider.value(value: geoidService),
-          Provider(create: (_) => EovService()),
+          Provider(
+              create: (_) => EovService(
+                  null, false, EovInputFrame.unknown, EovTransformMode.legacy)),
           ProxyProvider<EovService, CogoService>(
             update: (_, eov, __) => CogoService(eov),
           ),

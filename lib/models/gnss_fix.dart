@@ -29,7 +29,10 @@ enum GnssConnectionType {
   bluetoothClassic,
   ble,
   usb,
+  mfkrtk, // Specialized BLE profile for MFKRTK
 }
+
+enum GnssReferenceFrame { unknown, etrf2000 }
 
 class GnssFix {
   final double latitude;
@@ -64,12 +67,21 @@ class GnssFix {
   final double? correctionAge;
   final String? stationId;
   
+  // INS & Bynav specific fields
+  final double? heading;
+  final double? roll;
+  final double? pitch;
+  final String? insStatus;
+  final String? positionSource;
+  
   final GnssSource source;
   final String? receiverName;
   final GnssConnectionType connectionType;
   
   final DateTime timestamp;
   final TimestampSource timestampSource;
+  final GnssReferenceFrame referenceFrame;
+  final DateTime? referenceEpoch;
 
   GnssFix({
     required this.latitude,
@@ -90,12 +102,67 @@ class GnssFix {
     this.vdop,
     this.correctionAge,
     this.stationId,
+    this.heading,
+    this.roll,
+    this.pitch,
+    this.insStatus,
+    this.positionSource,
     required this.source,
     this.receiverName,
     required this.connectionType,
     required this.timestamp,
     this.timestampSource = TimestampSource.device,
+    this.referenceFrame = GnssReferenceFrame.unknown,
+    this.referenceEpoch,
   });
+
+  bool get isInsGood => insStatus == 'INS_SOLUTION_GOOD';
+
+  bool get isValidPosition {
+    if (latitude.isNaN || longitude.isNaN) return false;
+    if (latitude.isInfinite || longitude.isInfinite) return false;
+    if (latitude == 0.0 || longitude == 0.0) return false;
+    if (fixType == GnssFixType.none && !isInsGood) return false;
+    return true;
+  }
+
+  GnssFix copyWith({
+    double? latitude,
+    double? longitude,
+  }) {
+    return GnssFix(
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      altitude: altitude,
+      ellipsoidalHeight: ellipsoidalHeight,
+      isEllipsoidal: isEllipsoidal,
+      mslAltitude: mslAltitude,
+      geoidSeparation: geoidSeparation,
+      horizontalAccuracy: horizontalAccuracy,
+      verticalAccuracy: verticalAccuracy,
+      fixType: fixType,
+      rtkStatus: rtkStatus,
+      satellitesUsed: satellitesUsed,
+      satellitesInView: satellitesInView,
+      pdop: pdop,
+      hdop: hdop,
+      vdop: vdop,
+      correctionAge: correctionAge,
+      stationId: stationId,
+      heading: heading,
+      roll: roll,
+      pitch: pitch,
+      insStatus: insStatus,
+      positionSource: positionSource,
+      source: source,
+      receiverName: receiverName,
+      connectionType: connectionType,
+      timestamp: timestamp,
+      timestampSource: timestampSource,
+      referenceFrame: referenceFrame,
+      referenceEpoch: referenceEpoch,
+    );
+  }
 
   LatLng get toLatLng => LatLng(latitude, longitude);
 
@@ -116,15 +183,22 @@ class GnssFix {
     'vdop': vdop,
     'correctionAge': correctionAge,
     'stationId': stationId,
+    'heading': heading,
+    'roll': roll,
+    'pitch': pitch,
+    'insStatus': insStatus,
+    'positionSource': positionSource,
     'source': source.name,
     'receiverName': receiverName,
     'connectionType': connectionType.name,
     'timestamp': timestamp.toIso8601String(),
     'timestampSource': timestampSource.name,
+    'referenceFrame': referenceFrame.name,
+    'referenceEpoch': referenceEpoch?.toIso8601String(),
   };
 
   @override
   String toString() {
-    return 'GnssFix(lat: $latitude, lon: $longitude, h: $altitude, ellipsoidal: $isEllipsoidal, type: $fixType, rtk: $rtkStatus, src: $source)';
+    return 'GnssFix(lat: $latitude, lon: $longitude, h: $altitude, ellipsoidal: $isEllipsoidal, type: $fixType, rtk: $rtkStatus, ins: $insStatus, hdg: $heading, src: $source)';
   }
 }

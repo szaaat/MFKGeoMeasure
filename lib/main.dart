@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +11,7 @@ import 'services/eov_service.dart';
 import 'services/cogo_service.dart';
 import 'services/project_service.dart';
 import 'services/gnss_info_service.dart';
+import 'services/control_point_check_service.dart';
 import 'services/photo_service.dart';
 import 'services/template_service.dart';
 import 'services/import_service.dart';
@@ -26,6 +28,9 @@ List<CameraDescription> cameras = [];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+  ]);
   
   try {
     cameras = await availableCameras();
@@ -35,6 +40,7 @@ void main() async {
   
   final geoidService = GeoidCorrectionService();
   await geoidService.loadGeoidFile();
+  await geoidService.loadBmeGrid();
 
   runApp(
     MultiProvider(
@@ -46,7 +52,15 @@ void main() async {
         Provider.value(value: geoidService),
 
         // EOV Szolgáltatás (Globális vetületi motor)
-        Provider(create: (_) => EovService()),
+        Provider(create: (_) {
+          final eov = EovService(
+            geoidService.gridService,
+            false,
+            EovInputFrame.unknown,
+            EovTransformMode.bmeAssumed,
+          );
+          return eov;
+        }),
 
         // COGO Szolgáltatás
         ProxyProvider<EovService, CogoService>(
@@ -64,6 +78,9 @@ void main() async {
 
         // RTK / NTRIP Szolgáltatás
         ChangeNotifierProvider(create: (_) => RtcmService()),
+
+        // Alappont ellenőrző sessionök tartós tárolása
+        ChangeNotifierProvider(create: (_) => ControlPointCheckService()),
 
         // Fotó szolgáltatás
         ChangeNotifierProvider(create: (_) => PhotoService()),

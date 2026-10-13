@@ -25,7 +25,7 @@
   "slogan": "Földrajz az egész világ!",
   "startMap": "Térkép Indítása",
   "startLearning": "Geodéziai Gyakorlatok",
-  "uniName": "Miskolci Egyetem, MFK",
+  "uniName": "Miskolci Egyetem\nMűszaki Föld- és Környezettudományi Kar",
   "institute": "Földrajz-Geoinformatika Intézet",
 
   "noProject": "Nincs Projekt",
@@ -326,7 +326,196 @@
   "totalData": "Összes adat",
   "requireStableFix": "Stabil RTK FIX elvárása",
   "stabilityThreshold": "Stabilitási küszöb (s)",
+  "allowFloatSave": "Float állapotú mentés engedélyezése",
+  "allowFloatSaveSub": "Kikapcsolva: Csak RTK FIX esetén menthető. Bekapcsolva: RTK Float állapotban is engedélyezett a mentés.",
   "lastGgaSent": "Utolsó GGA küldve",
   "lastRtcmReceived": "Utolsó korrekció érkezett",
-  "reconnecting": "Újracsatlakozás..."
+  "reconnecting": "Újracsatlakozás...",
+  "waitingStableFix": "Stabil RTK FIX-re várakozás ({seconds} mp)...",
+  "@waitingStableFix": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "rtkStatusWaiting": "Stabil FIX szükséges",
+  "rtkStatusMeasuring": "Stabilitás mérése...",
+  "rtkStatusNoFix": "GNSS FIX szükséges",
+  "ntripProvider": "NTRIP Szolgáltató",
+  "providerCentipede": "Centipede-RTK",
+  "providerGnssNet": "GNSSnet.hu",
+  "providerCustom": "Egyéni / Manuális",
+  "mountpointNear": "Legközelebbi (NEAR)",
+  "mountpointNear4": "Legközelebbi (NEAR4)",
+
+  "battery": "Akkumulátor",
+  "firmwareVersion": "Firmware verzió",
+  "positionSource": "Pozíció forrása",
+  "insStatus": "INS állapot",
+  "rtkStatusLabel": "RTK állapot",
+  "insAlignment": "INS IGAZÍTÁS",
+  "insState": "INS állapot",
+  "m21Position": "M21 pozíció",
+  "noData": "Nincs adat",
+  "age": "kor:",
+  "packets": "Csomag:",
+  "bytes": "Bájt:",
+  "compass": "Iránytű",
+  "rtcmRefresh": "RTCM frissítés",
+  "m21Configure": "M21 konfigurálás",
+  "saveM21Config": "Konfiguráció mentése",
+  "receiverResponse": "Vevő válasza: {msg}",
+  "@receiverResponse": {
+    "placeholders": {
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "rawDiagnosticsLogger": "NYERS DIAGNOSZTIKA ÉS LOGOLÓ",
+  "firmwareUpdateOta": "FIRMWARE FRISSÍTÉS (OTA)",
+  "noMountpoint": "nincs mountpoint",
+  "connect": "Csatlakozás",
+  "correctionAgeLabel": "Korrekció kora",
+  "never": "Soha",
+  "connectedWait": "Csatlakozva (Várakozás)",
+  "dataActive": "Adatfájl aktív",
+  "connecting": "Csatlakozás...",
+  "disconnected": "Lecsatlakozva",
+  "notConfigured": "Nincs konfigurálva",
+  "passwordLeaveEmpty": "Jelszó (hagyja üresen, ha nem változik)",
+  "ggaInterval": "GGA intervallum (mp)",
+  "searching": "Keresés...",
+
+  "controlPointCheckTitle": "Alappont ellenőrzés",
+  "noPointLayerImportShp": "Nincs pont réteg. Importálj egy alappont SHP-t a projektbe.",
+  "unsupportedCrsMsg": "Nem támogatott vagy ismeretlen CRS. EOV EPSG:23700 vagy WGS84 EPSG:4326 szükséges.",
+  "measurement": "Mérés: ",
+  "startMeasurement": "MÉRÉS INDÍTÁSA",
+  "connectToMfkRtk": "Csatlakozz az MFKRTK vevőhöz.",
+  "nonFixedWarning": "A nem FIXED epochok is megmaradnak, de figyelmeztetést kapnak.",
+  "refLayerAndPoint": "Referencia réteg és pont",
+  "pointLayer": "Pont réteg",
+  "controlPoint": "Alappont",
+  "eovFromAttributes": "EOV E/N attribútummezőkből",
+  "eovFromAttributesSub": "Kikapcsolva: a geometriát vetíti WGS84-ből EOV-ra.",
+  "pointIdField": "Pontazonosító mező",
+  "pointNameField": "Pontnév mező",
+  "heightSource": "Magasság forrása",
+  "refHeightSystem": "Referencia magassági rendszer",
+  "unknownNoDh": "Ismeretlen — nincs ΔH",
+  "ellipsoidal": "Ellipszoidi",
+  "orthometricBaltic": "Ortometrikus / Balti",
+  "currentMfkRtkPosition": "Aktuális MFKRTK pozíció",
+  "waitingForMfkRtk": "Várakozás MFKRTK pozícióra…",
+  "aggregatedResults": "Összesített eredmény — minden session",
+  "sessionsCount": "Sessionök ({count})",
+  "@sessionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlPointSummary": "Alappont összesítő",
+  "noExportableMeasurements": "Nincs exportálható mérés.",
+  "csvExportError": "CSV export hiba: {error}",
+  "@csvExportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "levelingLogTitle": "Mérési napló",
+  "noSavedProtocols": "Nincsenek mentett jegyzőkönyvek.",
+  "modeLabel": "Mód: {mode}",
+  "@modeLabel": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "modePrecision": "Precíziós",
+  "modeLine": "Vonal",
+  "stationsCount": "Állomások: {count} db",
+  "@stationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "startingPoint": "Induló alappont: {point}",
+  "@startingPoint": {
+    "placeholders": {
+      "point": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfExportFailed": "PDF export sikertelen: {error}",
+  "@pdfExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "editResume": "Szerkesztés/Folytatás",
+  "confirmDelete": "Törlés megerősítése",
+  "confirmDeleteBody": "Biztosan törlöd a \"{name}\" jegyzőkönyvet?",
+  "@confirmDeleteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveProject": "Nincs aktív projekt.",
+  "cardView": "Kártya nézet",
+  "protocolView": "Jegyzőkönyv nézet",
+  "selectAdjustmentMode": "Válassz kiegyenlítési módot",
+  "heightLabel": "Magasság (m)",
+
+  "newLeveling": "Új szintezés",
+  "startLevelingLine": "Szintezési vonal indítása",
+  "lineName": "Vonal neve",
+  "startPointName": "Kezdő alappont neve",
+  "startHeightM": "Kezdő magasság (m)",
+  "precisionMode": "Precíziós mód (dupla számozású léc)",
+  "precisionModeSub": "Kikapcsolva: Vonal szintezés",
+  "selectPointFromProject": "Válassz pontot a projektből",
+  "newIntermediatePoint": "Új közbenső pont",
+  "noActiveLevelingLine": "Nincs aktív szintezési vonal",
+  "startNewLine": "ÚJ VONAL INDÍTÁSA",
+  "finishAndSave": "Mérés lezárása és Mentés",
+  "discardMeasurement": "Mérés elvetése",
+  "reviewLog": "MÉRÉSEK ÁTTEKINTÉSE (NAPLÓ)",
+  "noIntermediatePoints": "Nincs rögzített közbenső pont",
+  "saveHeightToPoint": "MAGASSÁG MENTÉSE A PONTBA",
+  "missingBacksightError": "Hiba: Hiányzó előre leolvasás!",
+  "finishMeasurement": "MÉRÉS BEFEJEZÉSE",
+  "negativeReadingError": "Hiba: Negatív leolvasás!",
+  "measurementOrder": "Mérési sorrend (pl. BS-FS / BS-IS...)",
+  "updateHeight": "Magasság frissítése",
+  "heightSaved": "Magasság elmentve.",
+  "measurementFinishedSaved": "Mérés lezárva és elmentve.",
+  "precisionLeveling": "Precíziós szintezés",
+  "missingProjectOrStation": "Hiba: Nincs aktív projekt vagy állomás",
+
+  "saveAnyway": "Mentés így is",
+  "photos": "Fényképek:",
+  "takePhotoLabel": "Fotó készítése",
+  "dataTemplate": "Adatlap sablon",
+  "readyToMeasure": "Kész a mérésre",
+  "rtcmLost": "RTCM megszakadt — ellenőrizd az NTRIP kapcsolatot.",
+  "waitingInsAlignMsg": "RTK FIX megvan — add meg a bot irányát az RTK beállításoknál.",
+  "waitingRtkFix": "Várunk RTK FIX-re",
+  "rtkAndInsRequired": "Méréshez RTK FIX és kész INS igazítás szükséges.",
+  "noPointsOnLayer": "Nincs pont réteg.",
+  "importShpTooltip": "Importálj egy alappont SHP-t a projektbe."
 }

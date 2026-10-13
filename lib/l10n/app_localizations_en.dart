@@ -46,7 +46,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startLearning => 'Geodetic Exercises';
 
   @override
-  String get uniName => 'University of Miskolc, MFK';
+  String get uniName =>
+      'University of Miskolc\nFaculty of Earth Science and Engineering';
 
   @override
   String get institute => 'Institute of Geography and Geoinformatics';
@@ -756,6 +757,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stabilityThreshold => 'Stability threshold (s)';
 
   @override
+  String get allowFloatSave => 'Allow Float Save';
+
+  @override
+  String get allowFloatSaveSub =>
+      'Off: Point saving requires RTK FIX. On: Point saving allowed in RTK Float state.';
+
+  @override
   String get lastGgaSent => 'Last GGA sent';
 
   @override
@@ -763,4 +771,386 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reconnecting => 'Reconnecting...';
+
+  @override
+  String waitingStableFix(String seconds) {
+    return 'Waiting for stable RTK FIX (${seconds}s)...';
+  }
+
+  @override
+  String get rtkStatusWaiting => 'Stable FIX required';
+
+  @override
+  String get rtkStatusMeasuring => 'Measuring stability...';
+
+  @override
+  String get rtkStatusNoFix => 'GNSS FIX required';
+
+  @override
+  String get ntripProvider => 'NTRIP Provider';
+
+  @override
+  String get providerCentipede => 'Centipede-RTK';
+
+  @override
+  String get providerGnssNet => 'GNSSnet.hu';
+
+  @override
+  String get providerCustom => 'Custom / Manual';
+
+  @override
+  String get mountpointNear => 'Nearest (NEAR)';
+
+  @override
+  String get mountpointNear4 => 'Nearest (NEAR4)';
+
+  @override
+  String get battery => 'Battery';
+
+  @override
+  String get firmwareVersion => 'Firmware Version';
+
+  @override
+  String get positionSource => 'Position Source';
+
+  @override
+  String get insStatus => 'INS Status';
+
+  @override
+  String get rtkStatusLabel => 'RTK Status';
+
+  @override
+  String get insAlignment => 'INS ALIGNMENT';
+
+  @override
+  String get insState => 'INS State';
+
+  @override
+  String get m21Position => 'M21 Position';
+
+  @override
+  String get noData => 'No data';
+
+  @override
+  String get age => 'age:';
+
+  @override
+  String get packets => 'Packets:';
+
+  @override
+  String get bytes => 'Bytes:';
+
+  @override
+  String get compass => 'Compass';
+
+  @override
+  String get rtcmRefresh => 'Refresh RTCM';
+
+  @override
+  String get m21Configure => 'Configure M21';
+
+  @override
+  String get saveM21Config => 'Save M21 Config';
+
+  @override
+  String receiverResponse(String msg) {
+    return 'Receiver response: $msg';
+  }
+
+  @override
+  String get rawDiagnosticsLogger => 'RAW DIAGNOSTICS & LOGGER';
+
+  @override
+  String get firmwareUpdateOta => 'FIRMWARE UPDATE (OTA)';
+
+  @override
+  String get noMountpoint => 'no mountpoint';
+
+  @override
+  String get connect => 'Connect';
+
+  @override
+  String get correctionAgeLabel => 'Correction Age';
+
+  @override
+  String get never => 'Never';
+
+  @override
+  String get connectedWait => 'Connected (Wait)';
+
+  @override
+  String get dataActive => 'Data Active';
+
+  @override
+  String get connecting => 'Connecting...';
+
+  @override
+  String get disconnected => 'Disconnected';
+
+  @override
+  String get notConfigured => 'Not Configured';
+
+  @override
+  String get passwordLeaveEmpty => 'Password (leave empty if unchanged)';
+
+  @override
+  String get ggaInterval => 'GGA Interval (s)';
+
+  @override
+  String get searching => 'Searching...';
+
+  @override
+  String get controlPointCheckTitle => 'Control Point Check';
+
+  @override
+  String get noPointLayerImportShp =>
+      'No point layer. Please import a control point SHP into the project.';
+
+  @override
+  String get unsupportedCrsMsg =>
+      'Unsupported or unknown CRS. EOV EPSG:23700 or WGS84 EPSG:4326 is required.';
+
+  @override
+  String get measurement => 'Measurement: ';
+
+  @override
+  String get startMeasurement => 'START MEASUREMENT';
+
+  @override
+  String get connectToMfkRtk => 'Connect to MFKRTK receiver.';
+
+  @override
+  String get nonFixedWarning =>
+      'Non-FIXED epochs will be kept, but marked with a warning.';
+
+  @override
+  String get refLayerAndPoint => 'Reference layer and point';
+
+  @override
+  String get pointLayer => 'Point layer';
+
+  @override
+  String get controlPoint => 'Control Point';
+
+  @override
+  String get eovFromAttributes => 'EOV E/N from attribute fields';
+
+  @override
+  String get eovFromAttributesSub =>
+      'Off: projects geometry from WGS84 to EOV.';
+
+  @override
+  String get pointIdField => 'Point ID field';
+
+  @override
+  String get pointNameField => 'Point Name field';
+
+  @override
+  String get heightSource => 'Height source';
+
+  @override
+  String get refHeightSystem => 'Reference height system';
+
+  @override
+  String get unknownNoDh => 'Unknown — no ΔH';
+
+  @override
+  String get ellipsoidal => 'Ellipsoidal';
+
+  @override
+  String get orthometricBaltic => 'Orthometric / Baltic';
+
+  @override
+  String get currentMfkRtkPosition => 'Current MFKRTK position';
+
+  @override
+  String get waitingForMfkRtk => 'Waiting for MFKRTK position…';
+
+  @override
+  String get aggregatedResults => 'Aggregated results — all sessions';
+
+  @override
+  String sessionsCount(int count) {
+    return 'Sessions ($count)';
+  }
+
+  @override
+  String get controlPointSummary => 'Control Point Summary';
+
+  @override
+  String get noExportableMeasurements => 'No measurements available to export.';
+
+  @override
+  String csvExportError(String error) {
+    return 'CSV export error: $error';
+  }
+
+  @override
+  String get levelingLogTitle => 'Leveling Log';
+
+  @override
+  String get noSavedProtocols => 'No saved leveling protocols.';
+
+  @override
+  String modeLabel(String mode) {
+    return 'Mode: $mode';
+  }
+
+  @override
+  String get modePrecision => 'Precision';
+
+  @override
+  String get modeLine => 'Line';
+
+  @override
+  String stationsCount(int count) {
+    return 'Stations: $count';
+  }
+
+  @override
+  String startingPoint(String point) {
+    return 'Start point: $point';
+  }
+
+  @override
+  String pdfExportFailed(String error) {
+    return 'PDF export failed: $error';
+  }
+
+  @override
+  String get editResume => 'Edit/Resume';
+
+  @override
+  String get confirmDelete => 'Confirm Delete';
+
+  @override
+  String confirmDeleteBody(String name) {
+    return 'Are you sure you want to delete \"$name\" protocol?';
+  }
+
+  @override
+  String get noActiveProject => 'No active project.';
+
+  @override
+  String get cardView => 'Card view';
+
+  @override
+  String get protocolView => 'Protocol view';
+
+  @override
+  String get selectAdjustmentMode => 'Select adjustment mode';
+
+  @override
+  String get heightLabel => 'Height (m)';
+
+  @override
+  String get newLeveling => 'New Leveling';
+
+  @override
+  String get startLevelingLine => 'Start Leveling Line';
+
+  @override
+  String get lineName => 'Line Name';
+
+  @override
+  String get startPointName => 'Start Point Name';
+
+  @override
+  String get startHeightM => 'Start Height (m)';
+
+  @override
+  String get precisionMode => 'Precision Mode (double scale rod)';
+
+  @override
+  String get precisionModeSub => 'Off: Line leveling';
+
+  @override
+  String get selectPointFromProject => 'Select point from project';
+
+  @override
+  String get newIntermediatePoint => 'New Intermediate Point';
+
+  @override
+  String get noActiveLevelingLine => 'No active leveling line';
+
+  @override
+  String get startNewLine => 'START NEW LINE';
+
+  @override
+  String get finishAndSave => 'Finish Measurement and Save';
+
+  @override
+  String get discardMeasurement => 'Discard Measurement';
+
+  @override
+  String get reviewLog => 'REVIEW MEASUREMENTS (LOG)';
+
+  @override
+  String get noIntermediatePoints => 'No intermediate points recorded';
+
+  @override
+  String get saveHeightToPoint => 'SAVE HEIGHT TO POINT';
+
+  @override
+  String get missingBacksightError => 'Error: Missing backsight reading!';
+
+  @override
+  String get finishMeasurement => 'FINISH MEASUREMENT';
+
+  @override
+  String get negativeReadingError => 'Error: Negative reading!';
+
+  @override
+  String get measurementOrder => 'Measurement order (e.g. BS-FS / BS-IS...)';
+
+  @override
+  String get updateHeight => 'Update Height';
+
+  @override
+  String get heightSaved => 'Height saved.';
+
+  @override
+  String get measurementFinishedSaved => 'Measurement finished and saved.';
+
+  @override
+  String get precisionLeveling => 'Precision Leveling';
+
+  @override
+  String get missingProjectOrStation => 'Error: No active project or station';
+
+  @override
+  String get saveAnyway => 'Save anyway';
+
+  @override
+  String get photos => 'Photos:';
+
+  @override
+  String get takePhotoLabel => 'Take Photo';
+
+  @override
+  String get dataTemplate => 'Data template';
+
+  @override
+  String get readyToMeasure => 'Ready to measure';
+
+  @override
+  String get rtcmLost => 'RTCM lost — check NTRIP connection.';
+
+  @override
+  String get waitingInsAlignMsg =>
+      'RTK FIX acquired — specify rod direction in RTK settings.';
+
+  @override
+  String get waitingRtkFix => 'Waiting for RTK FIX';
+
+  @override
+  String get rtkAndInsRequired =>
+      'RTK FIX and completed INS alignment required to measure.';
+
+  @override
+  String get noPointsOnLayer => 'No point layer.';
+
+  @override
+  String get importShpTooltip =>
+      'Please import a control point SHP into the project.';
 }

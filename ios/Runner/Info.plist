@@ -12,6 +12,10 @@
 	<string>A készített fotók elmentéséhez és megtekintéséhez szükségünk van a galéria elérésére.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>A digitális libella (vízszintező) működéséhez szükségünk van a mozgásérzékelőre.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Az MFKRTK külső GNSS vevőhöz való csatlakozáshoz Bluetooth hozzáférés szükséges.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Az MFKRTK külső GNSS vevőhöz való csatlakozáshoz Bluetooth hozzáférés szükséges.</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSExceptionDomains</key>

@@ -8,6 +8,7 @@ class NtripProfile {
   String mountpoint;
   String username;
   int ggaInterval;
+  String provider; // centipede, gnssnet, custom
 
   // Note: password is NOT stored here, it's in FlutterSecureStorage keyed by ID
 
@@ -19,6 +20,7 @@ class NtripProfile {
     this.mountpoint = '',
     this.username = '',
     this.ggaInterval = 10,
+    this.provider = 'custom',
   }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() => {
@@ -29,6 +31,7 @@ class NtripProfile {
     'mountpoint': mountpoint,
     'username': username,
     'ggaInterval': ggaInterval,
+    'provider': provider,
   };
 
   factory NtripProfile.fromJson(Map<String, dynamic> json) => NtripProfile(
@@ -39,6 +42,7 @@ class NtripProfile {
     mountpoint: json['mountpoint'] ?? '',
     username: json['username'] ?? '',
     ggaInterval: json['ggaInterval'] ?? 10,
+    provider: json['provider'] ?? 'custom',
   );
 
   @override

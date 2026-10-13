@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/leveling/leveling_service.dart';
 import '../../models/leveling/leveling_reading.dart';
 import '../../models/leveling/leveling_station.dart';
@@ -22,13 +23,13 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
     String? readingId;
 
     if (type == ReadingType.backsight) {
-      title = 'HÁTRA: ${station.backsightPointId}';
+      title = 'BS: ${station.backsightPointId}';
       initialValue = station.backsight;
     } else if (type == ReadingType.foresight) {
-      title = 'ELŐRE: ${station.foresightPointId}';
+      title = 'FS: ${station.foresightPointId}';
       initialValue = station.foresight;
     } else if (reading != null) {
-      title = 'KÖZBENSŐ: ${reading.pointId}';
+      title = 'IS: ${reading.pointId}';
       initialValue = reading.value;
       readingId = reading.id;
     }
@@ -49,18 +50,19 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final service = context.watch<LevelingService>();
     final project = service.activeProject;
 
-    if (project == null) return const Scaffold(body: Center(child: Text('Nincs aktív projekt.')));
+    if (project == null) return Scaffold(body: Center(child: Text(l10n.noActiveProject)));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mérési napló'),
+        title: Text(l10n.levelingLogTitle),
         actions: [
           IconButton(
             icon: Icon(_isProtocolView ? Icons.view_agenda : Icons.table_chart),
-            tooltip: _isProtocolView ? 'Kártya nézet' : 'Jegyzőkönyv nézet',
+            tooltip: _isProtocolView ? l10n.cardView : l10n.protocolView,
             onPressed: () => setState(() => _isProtocolView = !_isProtocolView),
           ),
         ],
@@ -78,6 +80,20 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
   }
 
   Widget _buildSummaryHeader(LevelingService service) {
+    final project = service.activeProject;
+    final isPrecision = project?.isPrecision ?? false;
+    final blackScaleSum = project?.stations.fold<double>(
+          0,
+          (sum, station) => sum + (station.deltaH1 ?? 0),
+        ) ??
+        0;
+    final redScaleSum = project?.stations.fold<double>(
+          0,
+          (sum, station) => sum + (station.deltaH2 ?? 0),
+        ) ??
+        0;
+    final checkedStations = project?.stations.where((station) => station.stationDiff != null).length ?? 0;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -85,20 +101,28 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
       child: Column(
         children: [
           Text(
-            '${service.stationCount} műszerállás · ${service.totalPointCount} pont · '
-            '${service.readingCount(ReadingType.backsight)} BS · '
-            '${service.readingCount(ReadingType.intermediate)} IS · '
-            '${service.readingCount(ReadingType.foresight)} FS',
+            isPrecision
+                ? '${service.stationCount} műszerállás · dupla skála · $checkedStations állás ellenőrizve'
+                : '${service.stationCount} műszerállás · ${service.totalPointCount} pont · '
+                    '${service.readingCount(ReadingType.backsight)} BS · '
+                    '${service.readingCount(ReadingType.intermediate)} IS · '
+                    '${service.readingCount(ReadingType.foresight)} FS',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey),
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem('ΣBS', service.sumBacksights),
-              _buildStatItem('ΣFS', service.sumForesights),
-              _buildStatItem('ΣΔH', service.calculatedHeightDifference, isBold: true),
-            ],
+            children: isPrecision
+                ? [
+                    _buildStatItem('ΣΔH fekete', blackScaleSum),
+                    _buildStatItem('ΣΔH vörös', redScaleSum),
+                    _buildStatItem('ΣΔH átlag', service.calculatedHeightDifference, isBold: true),
+                  ]
+                : [
+                    _buildStatItem('ΣBS', service.sumBacksights),
+                    _buildStatItem('ΣFS', service.sumForesights),
+                    _buildStatItem('ΣΔH', service.calculatedHeightDifference, isBold: true),
+                  ],
           ),
         ],
       ),
@@ -167,6 +191,7 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
   }
 
   void _showAdjustmentMenu(LevelingService service) {
+    final l10n = AppLocalizations.of(context)!;
     bool hasDistances = service.activeProject?.stations.every((s) => s.distance != null && s.distance! > 0) ?? false;
 
     showModalBottomSheet(
@@ -175,11 +200,11 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Válassz kiegyenlítési módot', style: TextStyle(fontWeight: FontWeight.bold))),
+            ListTile(title: Text(l10n.selectAdjustmentMode, style: const TextStyle(fontWeight: FontWeight.bold))),
             ListTile(
               leading: const Icon(Icons.numbers),
-              title: const Text('Állomásszám szerint'),
-              subtitle: const Text('A hibát egyenlő arányban osztja szét az állomások között.'),
+              title: Text(l10n.stationsCount(1).replaceAll(': 1', '')),
+              subtitle: const Text('Equal distribution among stations.'),
               onTap: () {
                 service.performAdjustment(AdjustmentMethod.stationCount);
                 Navigator.pop(ctx);
@@ -188,10 +213,10 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
             ListTile(
               leading: const Icon(Icons.straighten),
               enabled: hasDistances,
-              title: const Text('Távolságarányos'),
+              title: const Text('By Distance'),
               subtitle: Text(hasDistances 
-                ? 'A hibát a szakaszhosszak arányában osztja szét.' 
-                : 'Csak akkor érhető el, ha minden állomáshoz megadtál távolságot.'),
+                ? 'Distribute error proportionally to distance.' 
+                : 'Only available when distance is recorded for all stations.'),
               onTap: () {
                 service.performAdjustment(AdjustmentMethod.distance);
                 Navigator.pop(ctx);
@@ -243,13 +268,23 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('MH = ${mh.toStringAsFixed(3)} m', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
+            if (service.activeProject?.isPrecision ?? false)
+              Text(
+                'Átlagos ΔH: ${station.meanDeltaH?.toStringAsFixed(4) ?? '—'} m'
+                ' · skálaeltérés: ${station.stationDiff == null ? '—' : (station.stationDiff! * 1000).toStringAsFixed(2)} mm',
+                style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
+              )
+            else
+              Text('MH = ${mh.toStringAsFixed(3)} m', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12)),
             if (station.distance != null)
                Text('Távolság: ${station.distance!.toStringAsFixed(1)} m', style: const TextStyle(fontSize: 10, color: Colors.grey)),
           ],
         ),
         children: [
-          Padding(
+          if (service.activeProject?.isPrecision ?? false)
+            _buildPrecisionStationCardTable(station)
+          else
+            Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Table(
               columnWidths: const {
@@ -275,6 +310,37 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrecisionStationCardTable(LevelingStation station) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Table(
+        border: TableBorder(horizontalInside: BorderSide(color: Colors.grey.shade200)),
+        columnWidths: const {
+          0: FlexColumnWidth(2.5),
+          1: FlexColumnWidth(1.5),
+          2: FlexColumnWidth(1.5),
+        },
+        children: [
+          const TableRow(children: [
+            Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Pont / irány', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
+            Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Fekete (m)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10), textAlign: TextAlign.right)),
+            Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Vörös (m)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10), textAlign: TextAlign.right)),
+          ]),
+          TableRow(children: [
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text('Hátra · ${station.backsightPointId}', style: const TextStyle(fontSize: 11))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(station.h1?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(station.h2?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+          ]),
+          TableRow(children: [
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text('Előre · ${station.foresightPointId ?? '—'}', style: const TextStyle(fontSize: 11))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(station.e1?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(station.e2?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+          ]),
         ],
       ),
     );
@@ -370,7 +436,57 @@ class _LevelingLogScreenState extends State<LevelingLogScreen> {
     );
   }
 
+  Widget _buildPrecisionProtocolTable(LevelingService service) {
+    final project = service.activeProject!;
+    final rows = <TableRow>[
+      const TableRow(
+        decoration: BoxDecoration(color: Colors.black12),
+        children: [
+          Padding(padding: EdgeInsets.all(8), child: Text('Állás', style: TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: EdgeInsets.all(8), child: Text('Pont / irány', style: TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: EdgeInsets.all(8), child: Text('Fekete skála (m)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+          Padding(padding: EdgeInsets.all(8), child: Text('Vörös skála (m)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+          Padding(padding: EdgeInsets.all(8), child: Text('Skálaeltérés (mm)', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+        ],
+      ),
+    ];
+
+    for (final station in project.stations) {
+      rows.add(TableRow(children: [
+        Padding(padding: const EdgeInsets.all(8), child: Text('${station.stationId}', style: const TextStyle(fontWeight: FontWeight.bold))),
+        Padding(padding: const EdgeInsets.all(8), child: Text('Hátra · ${station.backsightPointId}')),
+        Padding(padding: const EdgeInsets.all(8), child: Text(station.h1?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+        Padding(padding: const EdgeInsets.all(8), child: Text(station.h2?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+        Padding(padding: const EdgeInsets.all(8), child: Text(station.stationDiff == null ? '—' : (station.stationDiff! * 1000).toStringAsFixed(2), textAlign: TextAlign.right)),
+      ]));
+      rows.add(TableRow(children: [
+        const Padding(padding: EdgeInsets.all(8), child: Text('')),
+        Padding(padding: const EdgeInsets.all(8), child: Text('Előre · ${station.foresightPointId ?? '—'}')),
+        Padding(padding: const EdgeInsets.all(8), child: Text(station.e1?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+        Padding(padding: const EdgeInsets.all(8), child: Text(station.e2?.toStringAsFixed(3) ?? '—', textAlign: TextAlign.right)),
+        const Padding(padding: EdgeInsets.all(8), child: Text('')),
+      ]));
+    }
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Table(
+            defaultColumnWidth: const IntrinsicColumnWidth(),
+            border: TableBorder.all(color: Colors.grey.shade300),
+            children: rows,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProtocolTable(LevelingService service) {
+    if (service.activeProject!.isPrecision) {
+      return _buildPrecisionProtocolTable(service);
+    }
     final List<TableRow> rows = [];
     
     // Header

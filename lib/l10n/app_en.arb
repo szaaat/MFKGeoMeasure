@@ -25,7 +25,7 @@
   "slogan": "Geography is the whole world!",
   "startMap": "Start Map",
   "startLearning": "Geodetic Exercises",
-  "uniName": "University of Miskolc, MFK",
+  "uniName": "University of Miskolc\nFaculty of Earth Science and Engineering",
   "institute": "Institute of Geography and Geoinformatics",
 
   "noProject": "No Project",
@@ -326,7 +326,196 @@
   "totalData": "Total Data",
   "requireStableFix": "Require stable RTK FIX",
   "stabilityThreshold": "Stability threshold (s)",
+  "allowFloatSave": "Allow Float Save",
+  "allowFloatSaveSub": "Off: Point saving requires RTK FIX. On: Point saving allowed in RTK Float state.",
   "lastGgaSent": "Last GGA sent",
   "lastRtcmReceived": "Last correction received",
-  "reconnecting": "Reconnecting..."
+  "reconnecting": "Reconnecting...",
+  "waitingStableFix": "Waiting for stable RTK FIX ({seconds}s)...",
+  "@waitingStableFix": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "rtkStatusWaiting": "Stable FIX required",
+  "rtkStatusMeasuring": "Measuring stability...",
+  "rtkStatusNoFix": "GNSS FIX required",
+  "ntripProvider": "NTRIP Provider",
+  "providerCentipede": "Centipede-RTK",
+  "providerGnssNet": "GNSSnet.hu",
+  "providerCustom": "Custom / Manual",
+  "mountpointNear": "Nearest (NEAR)",
+  "mountpointNear4": "Nearest (NEAR4)",
+
+  "battery": "Battery",
+  "firmwareVersion": "Firmware Version",
+  "positionSource": "Position Source",
+  "insStatus": "INS Status",
+  "rtkStatusLabel": "RTK Status",
+  "insAlignment": "INS ALIGNMENT",
+  "insState": "INS State",
+  "m21Position": "M21 Position",
+  "noData": "No data",
+  "age": "age:",
+  "packets": "Packets:",
+  "bytes": "Bytes:",
+  "compass": "Compass",
+  "rtcmRefresh": "Refresh RTCM",
+  "m21Configure": "Configure M21",
+  "saveM21Config": "Save M21 Config",
+  "receiverResponse": "Receiver response: {msg}",
+  "@receiverResponse": {
+    "placeholders": {
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "rawDiagnosticsLogger": "RAW DIAGNOSTICS & LOGGER",
+  "firmwareUpdateOta": "FIRMWARE UPDATE (OTA)",
+  "noMountpoint": "no mountpoint",
+  "connect": "Connect",
+  "correctionAgeLabel": "Correction Age",
+  "never": "Never",
+  "connectedWait": "Connected (Wait)",
+  "dataActive": "Data Active",
+  "connecting": "Connecting...",
+  "disconnected": "Disconnected",
+  "notConfigured": "Not Configured",
+  "passwordLeaveEmpty": "Password (leave empty if unchanged)",
+  "ggaInterval": "GGA Interval (s)",
+  "searching": "Searching...",
+
+  "controlPointCheckTitle": "Control Point Check",
+  "noPointLayerImportShp": "No point layer. Please import a control point SHP into the project.",
+  "unsupportedCrsMsg": "Unsupported or unknown CRS. EOV EPSG:23700 or WGS84 EPSG:4326 is required.",
+  "measurement": "Measurement: ",
+  "startMeasurement": "START MEASUREMENT",
+  "connectToMfkRtk": "Connect to MFKRTK receiver.",
+  "nonFixedWarning": "Non-FIXED epochs will be kept, but marked with a warning.",
+  "refLayerAndPoint": "Reference layer and point",
+  "pointLayer": "Point layer",
+  "controlPoint": "Control Point",
+  "eovFromAttributes": "EOV E/N from attribute fields",
+  "eovFromAttributesSub": "Off: projects geometry from WGS84 to EOV.",
+  "pointIdField": "Point ID field",
+  "pointNameField": "Point Name field",
+  "heightSource": "Height source",
+  "refHeightSystem": "Reference height system",
+  "unknownNoDh": "Unknown — no ΔH",
+  "ellipsoidal": "Ellipsoidal",
+  "orthometricBaltic": "Orthometric / Baltic",
+  "currentMfkRtkPosition": "Current MFKRTK position",
+  "waitingForMfkRtk": "Waiting for MFKRTK position…",
+  "aggregatedResults": "Aggregated results — all sessions",
+  "sessionsCount": "Sessions ({count})",
+  "@sessionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlPointSummary": "Control Point Summary",
+  "noExportableMeasurements": "No measurements available to export.",
+  "csvExportError": "CSV export error: {error}",
+  "@csvExportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "levelingLogTitle": "Leveling Log",
+  "noSavedProtocols": "No saved leveling protocols.",
+  "modeLabel": "Mode: {mode}",
+  "@modeLabel": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "modePrecision": "Precision",
+  "modeLine": "Line",
+  "stationsCount": "Stations: {count}",
+  "@stationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "startingPoint": "Start point: {point}",
+  "@startingPoint": {
+    "placeholders": {
+      "point": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfExportFailed": "PDF export failed: {error}",
+  "@pdfExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "editResume": "Edit/Resume",
+  "confirmDelete": "Confirm Delete",
+  "confirmDeleteBody": "Are you sure you want to delete \"{name}\" protocol?",
+  "@confirmDeleteBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveProject": "No active project.",
+  "cardView": "Card view",
+  "protocolView": "Protocol view",
+  "selectAdjustmentMode": "Select adjustment mode",
+  "heightLabel": "Height (m)",
+
+  "newLeveling": "New Leveling",
+  "startLevelingLine": "Start Leveling Line",
+  "lineName": "Line Name",
+  "startPointName": "Start Point Name",
+  "startHeightM": "Start Height (m)",
+  "precisionMode": "Precision Mode (double scale rod)",
+  "precisionModeSub": "Off: Line leveling",
+  "selectPointFromProject": "Select point from project",
+  "newIntermediatePoint": "New Intermediate Point",
+  "noActiveLevelingLine": "No active leveling line",
+  "startNewLine": "START NEW LINE",
+  "finishAndSave": "Finish Measurement and Save",
+  "discardMeasurement": "Discard Measurement",
+  "reviewLog": "REVIEW MEASUREMENTS (LOG)",
+  "noIntermediatePoints": "No intermediate points recorded",
+  "saveHeightToPoint": "SAVE HEIGHT TO POINT",
+  "missingBacksightError": "Error: Missing backsight reading!",
+  "finishMeasurement": "FINISH MEASUREMENT",
+  "negativeReadingError": "Error: Negative reading!",
+  "measurementOrder": "Measurement order (e.g. BS-FS / BS-IS...)",
+  "updateHeight": "Update Height",
+  "heightSaved": "Height saved.",
+  "measurementFinishedSaved": "Measurement finished and saved.",
+  "precisionLeveling": "Precision Leveling",
+  "missingProjectOrStation": "Error: No active project or station",
+
+  "saveAnyway": "Save anyway",
+  "photos": "Photos:",
+  "takePhotoLabel": "Take Photo",
+  "dataTemplate": "Data template",
+  "readyToMeasure": "Ready to measure",
+  "rtcmLost": "RTCM lost — check NTRIP connection.",
+  "waitingInsAlignMsg": "RTK FIX acquired — specify rod direction in RTK settings.",
+  "waitingRtkFix": "Waiting for RTK FIX",
+  "rtkAndInsRequired": "RTK FIX and completed INS alignment required to measure.",
+  "noPointsOnLayer": "No point layer.",
+  "importShpTooltip": "Please import a control point SHP into the project."
 }

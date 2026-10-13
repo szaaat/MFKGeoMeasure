@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/geo_feature.dart';
 import '../services/project_service.dart';
 import '../services/geoid_service.dart';
+import '../services/data_validation_service.dart';
 import '../l10n/app_localizations.dart';
 
 class ExportConfigDialog extends StatefulWidget {
@@ -54,7 +55,7 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("RÉTEG", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+            Text(l10n.pointLayer.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
             DropdownButton<ProjectLayer>(
               isExpanded: true,
               value: selectedLayer,
@@ -63,36 +64,50 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
             ),
             const SizedBox(height: 16),
 
-            const Text("FORMÁTUM", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const Text("FORMAT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
             Wrap(
               spacing: 8,
               children: [
                 ChoiceChip(label: const Text("SHP"), selected: format == "shp", onSelected: (s) => setState(() => format = "shp")),
                 ChoiceChip(label: const Text("GeoJSON"), selected: format == "geojson", onSelected: (s) => setState(() => format = "geojson")),
                 ChoiceChip(label: const Text("CSV"), selected: format == "csv", onSelected: (s) => setState(() => format = "csv")),
+                ChoiceChip(label: const Text("GML"), selected: format == "gml", onSelected: (s) => setState(() => format = "gml")),
+                ChoiceChip(label: const Text("GeoPackage"), selected: format == "gpkg", onSelected: (s) => setState(() => format = "gpkg")),
               ],
             ),
             const SizedBox(height: 16),
 
-            const Text("KOORDINÁTA-RENDSZER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-            RadioListTile<bool>(
-              title: const Text("EOV (EPSG:23700)", style: TextStyle(fontSize: 13)),
-              subtitle: const Text("Magyarországi vetület", style: TextStyle(fontSize: 10)),
-              value: true, groupValue: useEov, onChanged: (v) => setState(() => useEov = v!),
-              contentPadding: EdgeInsets.zero, visualDensity: VisualDensity.compact,
-            ),
-            RadioListTile<bool>(
-              title: const Text("WGS84 (EPSG:4326)", style: TextStyle(fontSize: 13)),
-              subtitle: const Text("Globális GPS koordináták", style: TextStyle(fontSize: 10)),
-              value: false, groupValue: useEov, onChanged: (v) => setState(() => useEov = v!),
-              contentPadding: EdgeInsets.zero, visualDensity: VisualDensity.compact,
+            const Text("COORDINATE SYSTEM", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+            RadioGroup<bool>(
+              groupValue: useEov,
+              onChanged: (value) {
+                if (value != null) setState(() => useEov = value);
+              },
+              child: const Column(
+                children: [
+                  RadioListTile<bool>(
+                    title: Text("EOV (EPSG:23700)", style: TextStyle(fontSize: 13)),
+                    subtitle: Text("Hungarian projection", style: TextStyle(fontSize: 10)),
+                    value: true,
+                    contentPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  RadioListTile<bool>(
+                    title: Text("WGS84 (EPSG:4326)", style: TextStyle(fontSize: 13)),
+                    subtitle: Text("Global GPS coordinates", style: TextStyle(fontSize: 10)),
+                    value: false,
+                    contentPadding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
 
-            const Text("TARTALOM", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+            const Text("CONTENT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
             CheckboxListTile(
-              title: const Text("Csak a kijelölt elemek", style: TextStyle(fontSize: 13)),
-              subtitle: Text("${widget.initialSelection?.length ?? 0} elem kijelölve", style: const TextStyle(fontSize: 10)),
+              title: const Text("Only selected items", style: TextStyle(fontSize: 13)),
+              subtitle: Text("${widget.initialSelection?.length ?? 0} items selected", style: const TextStyle(fontSize: 10)),
               value: exportOnlySelected,
               enabled: widget.initialSelection != null && widget.initialSelection!.isNotEmpty,
               onChanged: (val) => setState(() => exportOnlySelected = val!),
@@ -106,22 +121,71 @@ class _ExportConfigDialogState extends State<ExportConfigDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)),
         ElevatedButton.icon(
           icon: const Icon(Icons.check),
-          label: const Text("EXPORTÁLÁS"),
-          onPressed: selectedLayer == null ? null : () {
+          label: Text(l10n.export.toUpperCase()),
+          onPressed: selectedLayer == null ? null : () async {
+            final layer = selectedLayer!;
+            final geoidService = context.read<GeoidCorrectionService>();
+            final List<GeoFeature>? selected = exportOnlySelected ? widget.initialSelection : null;
+            final features = selected ?? layer.features;
+            const validator = DataValidationService();
+            final issues = features.expand((feature) => validator.validateFeature(
+              feature: feature,
+              fields: layer.fields,
+              crsInfo: layer.crsInfo,
+            )).toList();
+            final errors = issues.where((issue) => issue.severity == ValidationSeverity.error).toList();
+            final warnings = issues.where((issue) => issue.severity == ValidationSeverity.warning).toList();
+            if (errors.isNotEmpty || warnings.isNotEmpty) {
+              final proceed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: Text(errors.isEmpty ? 'Export Warnings' : 'Data Errors in Export'),
+                  content: SizedBox(
+                    width: 480,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (errors.isNotEmpty)
+                            Text('Erroneous objects: ${errors.length}. Export may contain invalid geometry or attribute data.'),
+                          if (warnings.isNotEmpty)
+                            Text('Warnings: ${warnings.length}. Check CRS and data.'),
+                          const SizedBox(height: 8),
+                          ...issues.take(12).map((issue) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text('• ${issue.featureName ?? layer.name}: ${issue.message}'),
+                          )),
+                          if (issues.length > 12) Text('… and ${issues.length - 12} more indications.'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, errors.isEmpty),
+                      child: Text(errors.isEmpty ? l10n.cancel : 'OK'),
+                    ),
+                    if (errors.isEmpty)
+                      FilledButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: Text(l10n.saveAnyway),
+                      ),
+                  ],
+                ),
+              );
+              if (proceed != true) return;
+            }
+            if (!context.mounted) return;
             Navigator.pop(context);
-            
-            final List<GeoFeature>? featuresToExport = exportOnlySelected 
-                ? widget.initialSelection
-                : null;
-
-            projectService.exportWithFormat(
-              context, 
-              context.read<GeoidCorrectionService>(), 
-              widget.project, 
-              format: format, 
-              layer: selectedLayer,
-              features: featuresToExport,
-              sharePositionOrigin: widget.sharePositionOrigin, 
+            await projectService.exportWithFormat(
+              context,
+              geoidService,
+              widget.project,
+              format: format,
+              layer: layer,
+              features: selected,
+              sharePositionOrigin: widget.sharePositionOrigin,
               useEov: useEov,
             );
           },

@@ -7,21 +7,21 @@ class BynavNavSolution {
   final double longitude;
   final double altitude;
   final double? undulation;
-  
+
   final double? heading;
   final double? pitch;
   final double? roll;
-  
+
   final double? northVelocity;
   final double? eastVelocity;
   final double? upVelocity;
-  
+
   final double? horizontalAccuracy;
   final double? verticalAccuracy;
-  
+
   final int? gpsWeek;
   final double? gpsSeconds;
-  
+
   final String? insStatus;
   final String? posType;
   final int? satellitesUsed;
@@ -51,6 +51,11 @@ class BynavNavSolution {
 
   bool get isInsGood => insStatus == 'INS_SOLUTION_GOOD';
 
+  /// BESTPOS reports orthometric height; INS/PVA solutions report ellipsoidal
+  /// height. The distinction is retained instead of inferred from platform.
+  bool get isEllipsoidalHeight =>
+      !messageName.toUpperCase().contains('BESTPOS');
+
   @override
   String toString() {
     return 'BynavNavSolution(msg: $messageName, lat: $latitude, lon: $longitude, h: $altitude, ins: $insStatus, posType: $posType, acc: $horizontalAccuracy)';
@@ -69,10 +74,10 @@ class BynavParser {
 
       // Remove leading prefix
       final raw = trimmed.substring(1);
-      
+
       // Separate payload and checksum if present
       final payload = raw.contains('*') ? raw.split('*')[0] : raw;
-      
+
       // Separate header and body by ';'
       if (!payload.contains(';')) return null;
 
@@ -91,18 +96,22 @@ class BynavParser {
       double? headerGpsSeconds;
       if (headerFields.length >= 6) {
         headerGpsWeek = int.tryParse(headerFields[headerFields.length - 2]);
-        headerGpsSeconds = double.tryParse(headerFields[headerFields.length - 1]);
+        headerGpsSeconds =
+            double.tryParse(headerFields[headerFields.length - 1]);
       }
 
       switch (msgName) {
         case 'INSPVASA':
         case 'INSPVA':
-          return _parseINSPVASA(msgName, headerFields, bodyFields, headerGpsWeek, headerGpsSeconds);
+          return _parseINSPVASA(msgName, headerFields, bodyFields,
+              headerGpsWeek, headerGpsSeconds);
         case 'INSPVAXA':
         case 'INSPVAX':
-          return _parseINSPVAXA(msgName, headerFields, bodyFields, headerGpsWeek, headerGpsSeconds);
+          return _parseINSPVAXA(msgName, headerFields, bodyFields,
+              headerGpsWeek, headerGpsSeconds);
         case 'BESTPOSA':
-          return _parseBESTPOSA(msgName, headerFields, bodyFields, headerGpsWeek, headerGpsSeconds);
+          return _parseBESTPOSA(msgName, headerFields, bodyFields,
+              headerGpsWeek, headerGpsSeconds);
         default:
           return null;
       }

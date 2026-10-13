@@ -58,15 +58,14 @@ class NmeaParser {
   }
 
   GnssFix? _parseGGA(List<String> parts, GnssSource source, GnssConnectionType connectionType) {
-    if (parts.length < 15) return null;
+    if (parts.length < 10) return null;
 
     // Lat/Lon parsing
-    double? lat = _parseDegrees(parts[2], parts[3]);
-    double? lon = _parseDegrees(parts[4], parts[5]);
-    if (lat == null || lon == null) return null;
+    double lat = (parts.length > 3) ? _parseDegrees(parts[2], parts[3]) ?? 0.0 : 0.0;
+    double lon = (parts.length > 5) ? _parseDegrees(parts[4], parts[5]) ?? 0.0 : 0.0;
 
     // Quality
-    int quality = int.tryParse(parts[6]) ?? 0;
+    int quality = (parts.length > 6) ? int.tryParse(parts[6]) ?? 0 : 0;
     GnssFixType fixType = GnssFixType.none;
     RtkStatus rtkStatus = RtkStatus.none;
 
@@ -77,19 +76,23 @@ class NmeaParser {
       case 5: fixType = GnssFixType.rtk; rtkStatus = RtkStatus.float; break;
     }
 
+    if (quality == 0) {
+      fixType = GnssFixType.none;
+    }
+
     // Satellites
-    _satellitesUsed = int.tryParse(parts[7]) ?? 0;
-    _lastHdop = double.tryParse(parts[8]);
+    _satellitesUsed = (parts.length > 7) ? int.tryParse(parts[7]) ?? 0 : 0;
+    _lastHdop = (parts.length > 8) ? double.tryParse(parts[8]) : null;
 
     // Altitude
-    double mslAlt = double.tryParse(parts[9]) ?? 0.0;
-    double geoidSep = double.tryParse(parts[11]) ?? 0.0;
+    double mslAlt = (parts.length > 9) ? double.tryParse(parts[9]) ?? 0.0 : 0.0;
+    double geoidSep = (parts.length > 11) ? double.tryParse(parts[11]) ?? 0.0 : 0.0;
     
     // Konvenció: ellipsoidal height = MSL altitude + geoid separation
     double ellipsoidalHeight = mslAlt + geoidSep;
 
-    double? age = double.tryParse(parts[13]);
-    String? station = parts[14];
+    double? age = (parts.length > 13) ? double.tryParse(parts[13]) : null;
+    String? station = (parts.length > 14) ? parts[14] : null;
 
     // Timestamp parsing
     DateTime timestamp = DateTime.now();
@@ -214,13 +217,14 @@ class NmeaParser {
     if (val.isEmpty) return null;
     try {
       int degLen = (val.contains('.')) ? val.indexOf('.') - 2 : val.length - 2;
+      if (degLen <= 0) return 0.0;
       double deg = double.parse(val.substring(0, degLen));
       double min = double.parse(val.substring(degLen));
       double res = deg + (min / 60.0);
       if (dir == 'S' || dir == 'W') res = -res;
       return res;
     } catch (e) {
-      return null;
+      return 0.0;
     }
   }
 }

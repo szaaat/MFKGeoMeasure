@@ -1,7 +1,7 @@
 import 'dart:async';
-import '../../models/gnss_fix.dart';
-import '../../models/gnss_raw_measurement.dart';
-import 'gnss_provider.dart';
+import 'package:mfk_geomeasure/models/gnss_fix.dart';
+import 'package:mfk_geomeasure/models/gnss_raw_measurement.dart';
+import 'package:mfk_geomeasure/services/gnss/gnss_provider.dart';
 
 /// Architectural skeleton for a Hybrid GNSS Provider.
 /// Capable of managing multiple sources (Internal + External) and
@@ -11,12 +11,14 @@ class HybridGnssProvider implements GnssProvider {
   final GnssProvider external;
 
   final _fixController = StreamController<GnssFix>.broadcast();
-  final _rawController = StreamController<GnssRawMeasurement>.broadcast();
+  final _rawMeasurementController = StreamController<GnssRawMeasurement>.broadcast();
+  final _rawByteController = StreamController<List<int>>.broadcast();
   
   StreamSubscription? _internalSub;
   StreamSubscription? _externalSub;
   StreamSubscription? _internalRawSub;
   StreamSubscription? _externalRawSub;
+  StreamSubscription? _externalRawByteSub;
 
   GnssSource _activeSource = GnssSource.internal;
   final bool _preferExternal = true;
@@ -30,7 +32,10 @@ class HybridGnssProvider implements GnssProvider {
   Stream<GnssFix> get fixStream => _fixController.stream;
 
   @override
-  Stream<GnssRawMeasurement> get rawMeasurementStream => _rawController.stream;
+  Stream<List<int>> get rawStream => _rawByteController.stream;
+
+  @override
+  Stream<GnssRawMeasurement> get rawMeasurementStream => _rawMeasurementController.stream;
 
   @override
   bool get supportsRtcmInput => external.supportsRtcmInput;
@@ -59,8 +64,9 @@ class HybridGnssProvider implements GnssProvider {
       }
     });
     
-    _internalRawSub = internal.rawMeasurementStream.listen((m) => _rawController.add(m));
-    _externalRawSub = external.rawMeasurementStream.listen((m) => _rawController.add(m));
+    _internalRawSub = internal.rawMeasurementStream.listen((m) => _rawMeasurementController.add(m));
+    _externalRawSub = external.rawMeasurementStream.listen((m) => _rawMeasurementController.add(m));
+    _externalRawByteSub = external.rawStream.listen((bytes) => _rawByteController.add(bytes));
   }
 
   @override
@@ -69,6 +75,7 @@ class HybridGnssProvider implements GnssProvider {
     await _externalSub?.cancel();
     await _internalRawSub?.cancel();
     await _externalRawSub?.cancel();
+    await _externalRawByteSub?.cancel();
     await internal.disconnect();
     await external.disconnect();
   }
@@ -82,7 +89,8 @@ class HybridGnssProvider implements GnssProvider {
   void dispose() {
     disconnect();
     _fixController.close();
-    _rawController.close();
+    _rawMeasurementController.close();
+    _rawByteController.close();
   }
 
   GnssFix _mapToHybrid(GnssFix fix) {
@@ -111,6 +119,8 @@ class HybridGnssProvider implements GnssProvider {
       connectionType: fix.connectionType,
       timestamp: fix.timestamp,
       timestampSource: fix.timestampSource,
+      referenceFrame: fix.referenceFrame,
+      referenceEpoch: fix.referenceEpoch,
     );
   }
 }

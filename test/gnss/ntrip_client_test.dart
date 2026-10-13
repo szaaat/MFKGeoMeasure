@@ -129,6 +129,72 @@ void main() {
       client.disconnect();
       await server.close();
     });
+
+    test('NtripClient immediate GGA sending for NEAR mountpoint', () async {
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final client = NtripClient(
+        host: '127.0.0.1',
+        port: server.port,
+        mountpoint: 'NEAR',
+        ggaInterval: 60, // Long interval, but we expect immediate send
+      );
+
+      final ggaCompleter = Completer<String>();
+      server.listen((socket) {
+        socket.listen((data) {
+          final str = utf8.decode(data, allowMalformed: true);
+          if (str.contains('GET')) {
+            socket.write('ICY 200 OK\r\n\r\n');
+          } else if (str.contains('GPGGA')) {
+            if (!ggaCompleter.isCompleted) ggaCompleter.complete(str);
+          }
+        });
+      });
+
+      // Provide position before connecting
+      client.updatePosition(r'$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47');
+      
+      await client.connect();
+      
+      // We expect the GGA to arrive almost immediately after connect, 
+      // definitely before the 60s timer.
+      final receivedGga = await ggaCompleter.future.timeout(const Duration(seconds: 2));
+      expect(receivedGga, contains('GPGGA'));
+      
+      client.disconnect();
+      await server.close();
+    });
+
+    test('NtripClient immediate GGA sending for NEAR4 mountpoint', () async {
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final client = NtripClient(
+        host: '127.0.0.1',
+        port: server.port,
+        mountpoint: 'NEAR4',
+        ggaInterval: 60,
+      );
+
+      final ggaCompleter = Completer<String>();
+      server.listen((socket) {
+        socket.listen((data) {
+          final str = utf8.decode(data, allowMalformed: true);
+          if (str.contains('GET')) {
+            socket.write('ICY 200 OK\r\n\r\n');
+          } else if (str.contains('GPGGA')) {
+            if (!ggaCompleter.isCompleted) ggaCompleter.complete(str);
+          }
+        });
+      });
+
+      client.updatePosition(r'$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47');
+      await client.connect();
+      
+      final receivedGga = await ggaCompleter.future.timeout(const Duration(seconds: 2));
+      expect(receivedGga, contains('GPGGA'));
+      
+      client.disconnect();
+      await server.close();
+    });
    });
   });
 }

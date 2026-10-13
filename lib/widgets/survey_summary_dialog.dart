@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 import '../models/geo_feature.dart';
 
 class SurveySummaryDialog extends StatelessWidget {
@@ -9,6 +10,7 @@ class SurveySummaryDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final features = layer.features;
     final total = features.length;
 
@@ -34,16 +36,22 @@ class SurveySummaryDialog extends StatelessWidget {
       
       if (method == 'RTK') {
         final rtkStat = stats['RTK Status'];
-        if (rtkStat == 'FIXED') rtkFix++;
-        else rtkFloat++;
+        if (rtkStat == 'FIXED') {
+          rtkFix++;
+        } else {
+          rtkFloat++;
+        }
       } else if (method == 'PHONE') {
         phone++;
       } else if (method == 'IMPORTED') {
         imported++;
       }
 
-      if (stats['NTRIP Active'] == 'YES') ntripYes++;
-      else if (stats['Survey Method'] != 'IMPORTED') ntripNo++;
+      if (stats['NTRIP Active'] == 'YES') {
+        ntripYes++;
+      } else if (stats['Survey Method'] != 'IMPORTED') {
+        ntripNo++;
+      }
 
       final dynamic sats = stats['Sats Used'];
       if (sats is num) {
@@ -57,8 +65,12 @@ class SurveySummaryDialog extends StatelessWidget {
         countHdop++;
       }
 
-      if (minTime == null || f.createdAt.isBefore(minTime)) minTime = f.createdAt;
-      if (maxTime == null || f.createdAt.isAfter(maxTime)) maxTime = f.createdAt;
+      if (minTime == null || f.createdAt.isBefore(minTime)) {
+        minTime = f.createdAt;
+      }
+      if (maxTime == null || f.createdAt.isAfter(maxTime)) {
+        maxTime = f.createdAt;
+      }
     }
 
     final avgSats = countSats > 0 ? sumSats / countSats : 0.0;
@@ -70,42 +82,42 @@ class SurveySummaryDialog extends StatelessWidget {
         children: [
           const Icon(Icons.analytics, color: Colors.blue),
           const SizedBox(width: 10),
-          Expanded(child: Text("${layer.name} - Minőségellenőrzés")),
+          Expanded(child: Text("${layer.name} - QA/QC Summary")),
         ],
       ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildStatCard("Általános", [
-              _buildRow("Összes elem", total.toString()),
-              _buildRow("Geometria típusok", layer.containedGeometryTypes.map((e) => e.name.toUpperCase()).join(', ')),
-              _buildRow("Adatforrás", layer.sourceType.toUpperCase()),
-              if (layer.crsInfo != null) _buildRow("Vetület (CRS)", layer.crsInfo!),
+            _buildStatCard("GENERAL", [
+              _buildRow("Total items", total.toString()),
+              _buildRow("Geometry types", layer.containedGeometryTypes.map((e) => e.name.toUpperCase()).join(', ')),
+              _buildRow("Data source", layer.sourceType.toUpperCase()),
+              if (layer.crsInfo != null) _buildRow("Projection (CRS)", layer.crsInfo!),
             ]),
             const SizedBox(height: 12),
-            _buildStatCard("Mérési statisztika", [
+            _buildStatCard("SURVEY STATS", [
               _buildRow("RTK FIX", rtkFix.toString(), color: Colors.green),
               _buildRow("RTK FLOAT", rtkFloat.toString(), color: Colors.orange),
-              _buildRow("Telefon GPS", phone.toString()),
-              _buildRow("Importált", imported.toString(), color: Colors.blueGrey),
+              _buildRow("Internal GPS", phone.toString()),
+              _buildRow("Imported", imported.toString(), color: Colors.blueGrey),
             ]),
             const SizedBox(height: 12),
-            _buildStatCard("Minőségi mutatók", [
-              _buildRow("Korrekció (NTRIP)", "$ntripYes be / $ntripNo ki"),
-              _buildRow("Átlagos műholdszám", avgSats.toStringAsFixed(1)),
-              _buildRow("Átlagos HDOP", avgHdop.toStringAsFixed(2), color: avgHdop < 1.0 ? Colors.green : Colors.orange),
+            _buildStatCard("QUALITY METRICS", [
+              _buildRow("NTRIP Correction", "$ntripYes ON / $ntripNo OFF"),
+              _buildRow("Avg Satellites", avgSats.toStringAsFixed(1)),
+              _buildRow("Avg HDOP", avgHdop.toStringAsFixed(2), color: avgHdop < 1.0 ? Colors.green : Colors.orange),
             ]),
             const SizedBox(height: 12),
-            _buildStatCard("Időintervallum", [
-              _buildRow("Kezdet", minTime != null ? timeFormat.format(minTime) : "-"),
-              _buildRow("Vége", maxTime != null ? timeFormat.format(maxTime) : "-"),
+            _buildStatCard("TIME RANGE", [
+              _buildRow("Start", minTime != null ? timeFormat.format(minTime) : "-"),
+              _buildRow("End", maxTime != null ? timeFormat.format(maxTime) : "-"),
             ]),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Bezárás")),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.close)),
       ],
     );
   }
@@ -135,8 +147,19 @@ class SurveySummaryDialog extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12)),
-          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+          Expanded(
+            child: Text(label, style: const TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.bold, color: color),
+            ),
+          ),
         ],
       ),
     );

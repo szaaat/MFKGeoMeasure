@@ -5,12 +5,14 @@ class CustomFieldDefinition {
   final String label;
   final FieldType type;
   final List<String>? choices;
+  final bool isRequired;
 
   CustomFieldDefinition({
     required this.key,
     required this.label,
     required this.type,
     this.choices,
+    this.isRequired = false,
   });
 
   factory CustomFieldDefinition.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,7 @@ class CustomFieldDefinition {
       label: json['label'],
       type: FieldType.values[json['type']],
       choices: json['choices'] != null ? List<String>.from(json['choices']) : null,
+      isRequired: json['isRequired'] == true,
     );
   }
 
@@ -27,6 +30,7 @@ class CustomFieldDefinition {
     'label': label,
     'type': type.index,
     if (choices != null) 'choices': choices,
+    'isRequired': isRequired,
   };
 
   // Segédfüggvény a régi mezőnév normalizálásához (slug generálás)

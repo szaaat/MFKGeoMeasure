@@ -53,5 +53,49 @@ void main() {
       expect(status.positionSource, 'INS_RTKFLOAT');
       expect(status.satellites, 18);
     });
+
+    test('Parses alternative battery keys correctly', () {
+      final json1 = {"battery_pct": 92, "v_bat": 4.12};
+      final status1 = MfkRtkStatus.fromJson(json1);
+      expect(status1.batteryPercentage, 92);
+      expect(status1.batteryVoltage, closeTo(4.12, 1e-2));
+
+      final json2 = {"bat_pct": 65, "battery_v": 3.78};
+      final status2 = MfkRtkStatus.fromJson(json2);
+      expect(status2.batteryPercentage, 65);
+      expect(status2.batteryVoltage, closeTo(3.78, 1e-2));
+
+      final json3 = {"battery_level": 40, "voltage": 3.60};
+      final status3 = MfkRtkStatus.fromJson(json3);
+      expect(status3.batteryPercentage, 40);
+      expect(status3.batteryVoltage, closeTo(3.60, 1e-2));
+
+      final json4 = {"soc": 88, "vbat": 4.05};
+      final status4 = MfkRtkStatus.fromJson(json4);
+      expect(status4.batteryPercentage, 88);
+      expect(status4.batteryVoltage, closeTo(4.05, 1e-2));
+    });
+
+    test('Retains previous battery state when new status JSON omits battery fields', () {
+      final initialJson = {"battery_percent": 85, "battery_voltage": 4.00};
+      final initialStatus = MfkRtkStatus.fromJson(initialJson);
+      expect(initialStatus.batteryPercentage, 85);
+
+      final updateJson = {"ins_align": "FINESTEERING", "rtcm_ok": true};
+      final updatedStatus = MfkRtkStatus.fromJson(updateJson, previousStatus: initialStatus);
+
+      expect(updatedStatus.batteryPercentage, 85);
+      expect(updatedStatus.batteryVoltage, closeTo(4.00, 1e-2));
+      expect(updatedStatus.insAlign, "FINESTEERING");
+      expect(updatedStatus.rtcmOk, isTrue);
+    });
+
+    test('Calculates battery percentage from voltage when raw percentage is absent', () {
+      final json = {"v_bat": 3.97};
+      final status = MfkRtkStatus.fromJson(json);
+
+      expect(status.batteryVoltage, closeTo(3.97, 1e-2));
+      expect(status.batteryPercentage, greaterThan(70));
+    });
   });
 }

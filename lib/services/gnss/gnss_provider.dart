@@ -1,11 +1,14 @@
-import '../../models/gnss_fix.dart';
-import '../../models/gnss_raw_measurement.dart';
+import 'package:mfk_geomeasure/models/gnss_fix.dart';
+import 'package:mfk_geomeasure/models/gnss_raw_measurement.dart';
 
 abstract class GnssProvider {
-  /// Stream az érkező pozícióadatokról
+  /// Stream az érkező pozícióadatokról (feldolgozott)
   Stream<GnssFix> get fixStream;
 
-  /// Stream a nyers műholdas mérésekről (PPK-hoz)
+  /// Stream a nyers byte-folyamról (diagnosztikához, egyedi protokollokhoz)
+  Stream<List<int>> get rawStream;
+
+  /// Stream a nyers műholdas mérésekről (PPK-hoz, ha a hardver támogatja)
   Stream<GnssRawMeasurement> get rawMeasurementStream;
 
   /// Támogatja-e a korrekciós adatok fogadását (RTCM)

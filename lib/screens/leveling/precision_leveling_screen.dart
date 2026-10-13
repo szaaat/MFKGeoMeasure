@@ -144,7 +144,20 @@ class _PrecisionLevelingScreenState extends State<PrecisionLevelingScreen> {
           IconButton(
             icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
             tooltip: 'PDF Jegyzőkönyv',
-            onPressed: () => LevelingExportService.generateAndSharePdf(project, context.read<ProjectService>()),
+            onPressed: () async {
+              try {
+                await LevelingExportService.generateAndSharePdf(
+                  context,
+                  project,
+                  context.read<ProjectService>(),
+                );
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('PDF export sikertelen: $error')),
+                );
+              }
+            },
           ),
           IconButton(
             icon: const Icon(Icons.analytics_outlined),
@@ -185,10 +198,19 @@ class _PrecisionLevelingScreenState extends State<PrecisionLevelingScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Állás #${station.stationId}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Row(
+                        Expanded(
+                          child: Text('Állás #${station.stationId}',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Hátra: ${station.backsightPointId}'),
+                            Flexible(
+                              child: Text('Hátra: ${station.backsightPointId}',
+                                  overflow: TextOverflow.ellipsis),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.info_outline, size: 20, color: Colors.blueGrey),
                               onPressed: () => _showMetadataDialog(levelingService),
@@ -196,6 +218,7 @@ class _PrecisionLevelingScreenState extends State<PrecisionLevelingScreen> {
                               padding: const EdgeInsets.only(left: 8),
                             )
                           ],
+                          ),
                         ),
                       ],
                     ),
@@ -214,27 +237,27 @@ class _PrecisionLevelingScreenState extends State<PrecisionLevelingScreen> {
             const SizedBox(height: 12),
 
             _buildReadingCard(
-              title: '1. SOROZAT',
-              hLabel: 'H1 (mm)',
+              title: 'FEKETE SKÁLA',
+              hLabel: 'Hátra (m)',
               hValue: station.h1,
-              eLabel: 'E1 (mm)',
+              eLabel: 'Előre (m)',
               eValue: station.e1,
               deltaH: deltaH1,
-              onHTap: () => _openKeypad(levelingService, 'HÁTRA 1', (val) => levelingService.updatePrecisionReading(h1: val), initialValue: station.h1),
-              onETap: () => _openKeypad(levelingService, 'ELŐRE 1', (val) => levelingService.updatePrecisionReading(e1: val), initialValue: station.e1),
+              onHTap: () => _openKeypad(levelingService, 'HÁTRA – FEKETE SKÁLA', (val) => levelingService.updatePrecisionReading(h1: val), initialValue: station.h1),
+              onETap: () => _openKeypad(levelingService, 'ELŐRE – FEKETE SKÁLA', (val) => levelingService.updatePrecisionReading(e1: val), initialValue: station.e1),
             ),
 
             const SizedBox(height: 12),
 
             _buildReadingCard(
-              title: '2. SOROZAT',
-              hLabel: 'H2 (mm)',
+              title: 'VÖRÖS SKÁLA',
+              hLabel: 'Hátra (m)',
               hValue: station.h2,
-              eLabel: 'E2 (mm)',
+              eLabel: 'Előre (m)',
               eValue: station.e2,
               deltaH: deltaH2,
-              onHTap: () => _openKeypad(levelingService, 'HÁTRA 2', (val) => levelingService.updatePrecisionReading(h2: val), initialValue: station.h2),
-              onETap: () => _openKeypad(levelingService, 'ELŐRE 2', (val) => levelingService.updatePrecisionReading(e2: val), initialValue: station.e2),
+              onHTap: () => _openKeypad(levelingService, 'HÁTRA – VÖRÖS SKÁLA', (val) => levelingService.updatePrecisionReading(h2: val), initialValue: station.h2),
+              onETap: () => _openKeypad(levelingService, 'ELŐRE – VÖRÖS SKÁLA', (val) => levelingService.updatePrecisionReading(e2: val), initialValue: station.e2),
             ),
 
             const SizedBox(height: 16),
@@ -253,7 +276,10 @@ class _PrecisionLevelingScreenState extends State<PrecisionLevelingScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Eltérés (d):', style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Expanded(
+                            child: Text('Eltérés (d):',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
                           Text('${(diff * 1000).toStringAsFixed(2)} mm', 
                             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isAccepted ? Colors.green : Colors.red)),
                         ],
@@ -407,7 +433,7 @@ class _PrecisionLevelingScreenState extends State<PrecisionLevelingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Δh:'),
-                    Text('${deltaH.toStringAsFixed(1)} mm', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text('${(deltaH * 1000).toStringAsFixed(1)} mm', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
               ),
@@ -431,7 +457,7 @@ class _PrecisionLevelingScreenState extends State<PrecisionLevelingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-            Text(value != null ? value.toStringAsFixed(1) : '---', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(value != null ? value.toStringAsFixed(3) : '---', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

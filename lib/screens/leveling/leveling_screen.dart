@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/leveling/leveling_service.dart';
 import '../../models/geo_feature.dart';
 import '../../widgets/leveling/numeric_keypad.dart';
@@ -18,6 +19,8 @@ class LevelingScreen extends StatefulWidget {
 class _LevelingScreenState extends State<LevelingScreen> {
   final TextEditingController _foresightNameController = TextEditingController();
 
+  AppLocalizations get l10n => AppLocalizations.of(context)!;
+
   @override
   void dispose() {
     _foresightNameController.dispose();
@@ -25,7 +28,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
   }
 
   void _showStartProjectDialog(LevelingService levelingService) {
-    final nameController = TextEditingController(text: 'Új szintezés');
+    final nameController = TextEditingController(text: l10n.newLeveling);
     final pointNameController = TextEditingController();
     final heightController = TextEditingController();
     bool isPrecision = false;
@@ -34,13 +37,14 @@ class _LevelingScreenState extends State<LevelingScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Szintezési vonal indítása'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          title: Text(l10n.startLevelingLine),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Vonal neve'),
+                decoration: InputDecoration(labelText: l10n.lineName),
               ),
               const SizedBox(height: 10),
               Row(
@@ -48,7 +52,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
                   Expanded(
                     child: TextField(
                       controller: pointNameController,
-                      decoration: const InputDecoration(labelText: 'Kezdő alappont neve'),
+                      decoration: InputDecoration(labelText: l10n.startPointName),
                     ),
                   ),
                   IconButton(
@@ -60,6 +64,10 @@ class _LevelingScreenState extends State<LevelingScreen> {
                             pointNameController.text = p.name;
                             if (p.altitudes.isNotEmpty) {
                               heightController.text = p.altitudes.first.toStringAsFixed(3);
+                            } else if (p.calculatedStats.containsKey('Balti magasság')) {
+                              heightController.text = (p.calculatedStats['Balti magasság'] as num).toStringAsFixed(3);
+                            } else if (p.calculatedStats.containsKey('Ellipszoidi magasság')) {
+                              heightController.text = (p.calculatedStats['Ellipszoidi magasság'] as num).toStringAsFixed(3);
                             }
                           }
                         });
@@ -70,33 +78,51 @@ class _LevelingScreenState extends State<LevelingScreen> {
               ),
               TextField(
                 controller: heightController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Kezdő magasság (m)'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                decoration: InputDecoration(
+                  labelText: l10n.startHeightM,
+                  hintText: '0.000',
+                  helperText: 'Ismeretlen magasság esetén hagyhatja 0.000 m értéken',
+                ),
               ),
               const SizedBox(height: 10),
               SwitchListTile(
-                title: const Text('Precíziós mód (H1-E1-H2-E2)'),
-                subtitle: const Text('Kikapcsolva: Vonal szintezés'),
+                title: Text(l10n.precisionMode),
+                subtitle: Text(l10n.precisionModeSub),
                 value: isPrecision,
                 onChanged: (val) => setDialogState(() => isPrecision = val),
               ),
             ],
           ),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mégse')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
             ElevatedButton(
               onPressed: () {
-                if (pointNameController.text.isEmpty || heightController.text.isEmpty) return;
+                final pointName = pointNameController.text.trim();
+                final heightText = heightController.text.trim().replaceAll(',', '.');
+
+                if (pointName.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Kérjük adja meg a kezdőpont nevét!'), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
+
+                // Ismeretlen magasság esetén alapértelmezett a 0.000 m
+                final double startHeight = heightText.isEmpty ? 0.0 : (double.tryParse(heightText) ?? 0.0);
+
                 levelingService.startNewProject(
                   id: const Uuid().v4(),
-                  name: nameController.text,
-                  startPointId: pointNameController.text,
-                  startHeight: double.parse(heightController.text.replaceAll(',', '.')),
+                  name: nameController.text.trim().isNotEmpty ? nameController.text.trim() : l10n.newLeveling,
+                  startPointId: pointName,
+                  startHeight: startHeight,
                   isPrecision: isPrecision,
                 );
-                levelingService.addStation(pointNameController.text);
+                levelingService.addStation(pointName);
                 Navigator.pop(ctx);
-                
+                setState(() {});
+
                 if (isPrecision) {
                   Navigator.pushReplacement(
                     context,
@@ -104,7 +130,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
                   );
                 }
               },
-              child: const Text('Indítás'),
+              child: Text(l10n.startLevelingLine),
             ),
           ],
         ),
@@ -226,7 +252,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.history),
-              tooltip: 'Szintezési Napló',
+              tooltip: l10n.levelingLogTitle,
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LevelingHistoryScreen())),
             )
           ],
@@ -237,11 +263,11 @@ class _LevelingScreenState extends State<LevelingScreen> {
             children: [
               const Icon(Icons.height, size: 80, color: Colors.blueGrey),
               const SizedBox(height: 20),
-              const Text('Nincs aktív szintezési vonal'),
+              Text(l10n.noActiveLevelingLine),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () => _showStartProjectDialog(levelingService),
-                child: const Text('ÚJ VONAL INDÍTÁSA'),
+                child: Text(l10n.startNewLine),
               ),
             ],
           ),
@@ -272,7 +298,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: 'Szintezési Napló',
+            tooltip: l10n.levelingLogTitle,
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LevelingHistoryScreen())),
           ),
           PopupMenuButton<String>(
@@ -284,8 +310,8 @@ class _LevelingScreenState extends State<LevelingScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'finish', child: Text('Mérés lezárása és Mentés')),
-              const PopupMenuItem(value: 'discard', child: Text('Mérés elvetése', style: TextStyle(color: Colors.red))),
+              PopupMenuItem(value: 'finish', child: Text(l10n.finishAndSave)),
+              PopupMenuItem(value: 'discard', child: Text(l10n.discardMeasurement, style: const TextStyle(color: Colors.red))),
             ],
           ),
         ],
@@ -312,7 +338,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: Colors.blue.shade200)),
               ),
               icon: const Icon(Icons.menu_book),
-              label: const Text('MÉRÉSEK ÁTTEKINTÉSE (NAPLÓ)', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: Text(l10n.reviewLog, style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
 
             const SizedBox(height: 16),
@@ -327,10 +353,16 @@ class _LevelingScreenState extends State<LevelingScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('HÁTRAPONT', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                        const Expanded(
+                          child: Text('HÁTRAPONT',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                        ),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Állás #${station?.stationId ?? 1}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                            Text('Állás #${station?.stationId ?? 1}',
+                                style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis),
                             IconButton(
                               icon: const Icon(Icons.info_outline, size: 20, color: Colors.blueGrey),
                               onPressed: () => _showMetadataDialog(levelingService),
@@ -375,8 +407,12 @@ class _LevelingScreenState extends State<LevelingScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Műszerhorizont (MH):', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('${mh.toStringAsFixed(3)} m', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)),
+                            const Expanded(
+                              child: Text('Műszerhorizont (MH):',
+                                  style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                            Text('${mh.toStringAsFixed(3)} m',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)),
                           ],
                         ),
                       ),
@@ -422,7 +458,8 @@ class _LevelingScreenState extends State<LevelingScreen> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('${pHeight.toStringAsFixed(3)} m', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                                Text('${pHeight.toStringAsFixed(3)} m',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                                 IconButton(
                                   icon: const Icon(Icons.save_outlined, size: 16),
                                   onPressed: () => _showConfirmSaveDialog(levelingService, reading.pointId, pHeight),
@@ -509,7 +546,10 @@ class _LevelingScreenState extends State<LevelingScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Számított magasság:', style: TextStyle(fontWeight: FontWeight.bold)),
+                              const Expanded(
+                                child: Text('Számított magasság:',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
                               Text('${fsHeight.toStringAsFixed(3)} m', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
                             ],
                           ),
@@ -529,13 +569,13 @@ class _LevelingScreenState extends State<LevelingScreen> {
                     onPressed: () => _showConfirmSaveDialog(levelingService, station!.foresightPointId!, fsHeight!),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50)),
                     icon: const Icon(Icons.check_circle),
-                    label: const Text('MAGASSÁG MENTÉSE A PONTBA'),
+                    label: Text(l10n.saveHeightToPoint),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () {
                       if (station?.foresight == null) {
-                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hiba: Hiányzó előre leolvasás!')));
+                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.missingBacksightError)));
                          return;
                       }
                       final nextBacksightId = station!.foresightPointId!;
@@ -544,7 +584,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
                     },
                     style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                     icon: const Icon(Icons.redo),
-                    label: const Text('KÖVETKEZŐ MŰSZERÁLLÁS'),
+                    label: const Text('NEXT STATION'),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
@@ -555,7 +595,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     icon: const Icon(Icons.flag),
-                    label: const Text('MÉRÉS BEFEJEZÉSE'),
+                    label: Text(l10n.finishMeasurement),
                   ),
                 ],
               ),
@@ -578,16 +618,20 @@ class _LevelingScreenState extends State<LevelingScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
-                const SizedBox(height: 4),
-                Text(
-                  value != null ? value.toStringAsFixed(3) : '---',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                  const SizedBox(height: 4),
+                  Text(
+                    value != null ? value.toStringAsFixed(3) : '---',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
             const Icon(Icons.keyboard_alt_outlined, color: Colors.blue),
           ],
@@ -604,11 +648,14 @@ class _LevelingScreenState extends State<LevelingScreen> {
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(5)),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.error, color: Colors.red, size: 16),
-            SizedBox(width: 8),
-            Text('Hiba: Negatív leolvasás!', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+            const Icon(Icons.error, color: Colors.red, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(l10n.negativeReadingError,
+                  style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
       );
@@ -622,7 +669,10 @@ class _LevelingScreenState extends State<LevelingScreen> {
           children: [
             Icon(Icons.warning, color: Colors.orange, size: 16),
             SizedBox(width: 8),
-            Text('Figyelem: Szokatlanul nagy leolvasás (>4m)', style: TextStyle(color: Colors.orange, fontSize: 12)),
+            Expanded(
+              child: Text('Warning: Unusually high reading (>4m)',
+                  style: TextStyle(color: Colors.orange, fontSize: 12)),
+            ),
           ],
         ),
       );
@@ -642,20 +692,20 @@ class _LevelingScreenState extends State<LevelingScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Állás információk'),
+        title: const Text('Station Information'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: surveyorCtrl, decoration: const InputDecoration(labelText: 'Mérő személy')),
-              TextField(controller: instrumentCtrl, decoration: const InputDecoration(labelText: 'Műszer típusa')),
-              TextField(controller: orderCtrl, decoration: const InputDecoration(labelText: 'Mérési sorrend (pl. BFFB)')),
-              TextField(controller: notesCtrl, decoration: const InputDecoration(labelText: 'Megjegyzés'), maxLines: 3),
+              TextField(controller: surveyorCtrl, decoration: const InputDecoration(labelText: 'Surveyor')),
+              TextField(controller: instrumentCtrl, decoration: const InputDecoration(labelText: 'Instrument Model')),
+              TextField(controller: orderCtrl, decoration: InputDecoration(labelText: l10n.measurementOrder)),
+              TextField(controller: notesCtrl, decoration: InputDecoration(labelText: l10n.description), maxLines: 3),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mégse')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () {
               service.updateStationMetadata(
@@ -666,7 +716,7 @@ class _LevelingScreenState extends State<LevelingScreen> {
               );
               Navigator.pop(ctx);
             },
-            child: const Text('Mentés'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -677,17 +727,17 @@ class _LevelingScreenState extends State<LevelingScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Magasság frissítése'),
-        content: Text('Biztosan elmented a $pointId pont szintezett magasságát (${newHeight.toStringAsFixed(3)} m)?'),
+        title: Text(l10n.updateHeight),
+        content: Text('Save leveled height (${newHeight.toStringAsFixed(3)} m) for point $pointId?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mégse')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () {
               service.saveLeveledHeightToPoint(pointId, newHeight);
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Magasság elmentve.')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.heightSaved)));
             },
-            child: const Text('Mentés'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -698,17 +748,17 @@ class _LevelingScreenState extends State<LevelingScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Mérés elvetése'),
-        content: const Text('Biztosan elveted a jelenlegi mérést? Minden nem mentett adat elvész.'),
+        title: Text(l10n.discardMeasurement),
+        content: const Text('Are you sure you want to discard the current measurement? All unsaved data will be lost.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mégse')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () {
               service.discardActiveProject();
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: const Text('Elvetés'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -719,21 +769,22 @@ class _LevelingScreenState extends State<LevelingScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Mérés befejezése'),
-        content: const Text('Befejezed a mérést és elmented a jegyzőkönyvet a naplóba?'),
+        title: Text(l10n.finishMeasurement),
+        content: const Text('Finish measurement and save protocol to log?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mégse')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () {
               service.finishProject();
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mérés lezárva és elmentve.')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.measurementFinishedSaved)));
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, foregroundColor: Colors.white),
-            child: const Text('Befejezés'),
+            child: Text(l10n.done),
           ),
         ],
       ),
     );
+
   }
 }

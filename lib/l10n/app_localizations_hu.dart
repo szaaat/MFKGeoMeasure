@@ -46,7 +46,8 @@ class AppLocalizationsHu extends AppLocalizations {
   String get startLearning => 'Geodéziai Gyakorlatok';
 
   @override
-  String get uniName => 'Miskolci Egyetem, MFK';
+  String get uniName =>
+      'Miskolci Egyetem\nMűszaki Föld- és Környezettudományi Kar';
 
   @override
   String get institute => 'Földrajz-Geoinformatika Intézet';
@@ -757,6 +758,13 @@ class AppLocalizationsHu extends AppLocalizations {
   String get stabilityThreshold => 'Stabilitási küszöb (s)';
 
   @override
+  String get allowFloatSave => 'Float állapotú mentés engedélyezése';
+
+  @override
+  String get allowFloatSaveSub =>
+      'Kikapcsolva: Csak RTK FIX esetén menthető. Bekapcsolva: RTK Float állapotban is engedélyezett a mentés.';
+
+  @override
   String get lastGgaSent => 'Utolsó GGA küldve';
 
   @override
@@ -764,4 +772,386 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get reconnecting => 'Újracsatlakozás...';
+
+  @override
+  String waitingStableFix(String seconds) {
+    return 'Stabil RTK FIX-re várakozás ($seconds mp)...';
+  }
+
+  @override
+  String get rtkStatusWaiting => 'Stabil FIX szükséges';
+
+  @override
+  String get rtkStatusMeasuring => 'Stabilitás mérése...';
+
+  @override
+  String get rtkStatusNoFix => 'GNSS FIX szükséges';
+
+  @override
+  String get ntripProvider => 'NTRIP Szolgáltató';
+
+  @override
+  String get providerCentipede => 'Centipede-RTK';
+
+  @override
+  String get providerGnssNet => 'GNSSnet.hu';
+
+  @override
+  String get providerCustom => 'Egyéni / Manuális';
+
+  @override
+  String get mountpointNear => 'Legközelebbi (NEAR)';
+
+  @override
+  String get mountpointNear4 => 'Legközelebbi (NEAR4)';
+
+  @override
+  String get battery => 'Akkumulátor';
+
+  @override
+  String get firmwareVersion => 'Firmware verzió';
+
+  @override
+  String get positionSource => 'Pozíció forrása';
+
+  @override
+  String get insStatus => 'INS állapot';
+
+  @override
+  String get rtkStatusLabel => 'RTK állapot';
+
+  @override
+  String get insAlignment => 'INS IGAZÍTÁS';
+
+  @override
+  String get insState => 'INS állapot';
+
+  @override
+  String get m21Position => 'M21 pozíció';
+
+  @override
+  String get noData => 'Nincs adat';
+
+  @override
+  String get age => 'kor:';
+
+  @override
+  String get packets => 'Csomag:';
+
+  @override
+  String get bytes => 'Bájt:';
+
+  @override
+  String get compass => 'Iránytű';
+
+  @override
+  String get rtcmRefresh => 'RTCM frissítés';
+
+  @override
+  String get m21Configure => 'M21 konfigurálás';
+
+  @override
+  String get saveM21Config => 'Konfiguráció mentése';
+
+  @override
+  String receiverResponse(String msg) {
+    return 'Vevő válasza: $msg';
+  }
+
+  @override
+  String get rawDiagnosticsLogger => 'NYERS DIAGNOSZTIKA ÉS LOGOLÓ';
+
+  @override
+  String get firmwareUpdateOta => 'FIRMWARE FRISSÍTÉS (OTA)';
+
+  @override
+  String get noMountpoint => 'nincs mountpoint';
+
+  @override
+  String get connect => 'Csatlakozás';
+
+  @override
+  String get correctionAgeLabel => 'Korrekció kora';
+
+  @override
+  String get never => 'Soha';
+
+  @override
+  String get connectedWait => 'Csatlakozva (Várakozás)';
+
+  @override
+  String get dataActive => 'Adatfájl aktív';
+
+  @override
+  String get connecting => 'Csatlakozás...';
+
+  @override
+  String get disconnected => 'Lecsatlakozva';
+
+  @override
+  String get notConfigured => 'Nincs konfigurálva';
+
+  @override
+  String get passwordLeaveEmpty => 'Jelszó (hagyja üresen, ha nem változik)';
+
+  @override
+  String get ggaInterval => 'GGA intervallum (mp)';
+
+  @override
+  String get searching => 'Keresés...';
+
+  @override
+  String get controlPointCheckTitle => 'Alappont ellenőrzés';
+
+  @override
+  String get noPointLayerImportShp =>
+      'Nincs pont réteg. Importálj egy alappont SHP-t a projektbe.';
+
+  @override
+  String get unsupportedCrsMsg =>
+      'Nem támogatott vagy ismeretlen CRS. EOV EPSG:23700 vagy WGS84 EPSG:4326 szükséges.';
+
+  @override
+  String get measurement => 'Mérés: ';
+
+  @override
+  String get startMeasurement => 'MÉRÉS INDÍTÁSA';
+
+  @override
+  String get connectToMfkRtk => 'Csatlakozz az MFKRTK vevőhöz.';
+
+  @override
+  String get nonFixedWarning =>
+      'A nem FIXED epochok is megmaradnak, de figyelmeztetést kapnak.';
+
+  @override
+  String get refLayerAndPoint => 'Referencia réteg és pont';
+
+  @override
+  String get pointLayer => 'Pont réteg';
+
+  @override
+  String get controlPoint => 'Alappont';
+
+  @override
+  String get eovFromAttributes => 'EOV E/N attribútummezőkből';
+
+  @override
+  String get eovFromAttributesSub =>
+      'Kikapcsolva: a geometriát vetíti WGS84-ből EOV-ra.';
+
+  @override
+  String get pointIdField => 'Pontazonosító mező';
+
+  @override
+  String get pointNameField => 'Pontnév mező';
+
+  @override
+  String get heightSource => 'Magasság forrása';
+
+  @override
+  String get refHeightSystem => 'Referencia magassági rendszer';
+
+  @override
+  String get unknownNoDh => 'Ismeretlen — nincs ΔH';
+
+  @override
+  String get ellipsoidal => 'Ellipszoidi';
+
+  @override
+  String get orthometricBaltic => 'Ortometrikus / Balti';
+
+  @override
+  String get currentMfkRtkPosition => 'Aktuális MFKRTK pozíció';
+
+  @override
+  String get waitingForMfkRtk => 'Várakozás MFKRTK pozícióra…';
+
+  @override
+  String get aggregatedResults => 'Összesített eredmény — minden session';
+
+  @override
+  String sessionsCount(int count) {
+    return 'Sessionök ($count)';
+  }
+
+  @override
+  String get controlPointSummary => 'Alappont összesítő';
+
+  @override
+  String get noExportableMeasurements => 'Nincs exportálható mérés.';
+
+  @override
+  String csvExportError(String error) {
+    return 'CSV export hiba: $error';
+  }
+
+  @override
+  String get levelingLogTitle => 'Mérési napló';
+
+  @override
+  String get noSavedProtocols => 'Nincsenek mentett jegyzőkönyvek.';
+
+  @override
+  String modeLabel(String mode) {
+    return 'Mód: $mode';
+  }
+
+  @override
+  String get modePrecision => 'Precíziós';
+
+  @override
+  String get modeLine => 'Vonal';
+
+  @override
+  String stationsCount(int count) {
+    return 'Állomások: $count db';
+  }
+
+  @override
+  String startingPoint(String point) {
+    return 'Induló alappont: $point';
+  }
+
+  @override
+  String pdfExportFailed(String error) {
+    return 'PDF export sikertelen: $error';
+  }
+
+  @override
+  String get editResume => 'Szerkesztés/Folytatás';
+
+  @override
+  String get confirmDelete => 'Törlés megerősítése';
+
+  @override
+  String confirmDeleteBody(String name) {
+    return 'Biztosan törlöd a \"$name\" jegyzőkönyvet?';
+  }
+
+  @override
+  String get noActiveProject => 'Nincs aktív projekt.';
+
+  @override
+  String get cardView => 'Kártya nézet';
+
+  @override
+  String get protocolView => 'Jegyzőkönyv nézet';
+
+  @override
+  String get selectAdjustmentMode => 'Válassz kiegyenlítési módot';
+
+  @override
+  String get heightLabel => 'Magasság (m)';
+
+  @override
+  String get newLeveling => 'Új szintezés';
+
+  @override
+  String get startLevelingLine => 'Szintezési vonal indítása';
+
+  @override
+  String get lineName => 'Vonal neve';
+
+  @override
+  String get startPointName => 'Kezdő alappont neve';
+
+  @override
+  String get startHeightM => 'Kezdő magasság (m)';
+
+  @override
+  String get precisionMode => 'Precíziós mód (dupla számozású léc)';
+
+  @override
+  String get precisionModeSub => 'Kikapcsolva: Vonal szintezés';
+
+  @override
+  String get selectPointFromProject => 'Válassz pontot a projektből';
+
+  @override
+  String get newIntermediatePoint => 'Új közbenső pont';
+
+  @override
+  String get noActiveLevelingLine => 'Nincs aktív szintezési vonal';
+
+  @override
+  String get startNewLine => 'ÚJ VONAL INDÍTÁSA';
+
+  @override
+  String get finishAndSave => 'Mérés lezárása és Mentés';
+
+  @override
+  String get discardMeasurement => 'Mérés elvetése';
+
+  @override
+  String get reviewLog => 'MÉRÉSEK ÁTTEKINTÉSE (NAPLÓ)';
+
+  @override
+  String get noIntermediatePoints => 'Nincs rögzített közbenső pont';
+
+  @override
+  String get saveHeightToPoint => 'MAGASSÁG MENTÉSE A PONTBA';
+
+  @override
+  String get missingBacksightError => 'Hiba: Hiányzó előre leolvasás!';
+
+  @override
+  String get finishMeasurement => 'MÉRÉS BEFEJEZÉSE';
+
+  @override
+  String get negativeReadingError => 'Hiba: Negatív leolvasás!';
+
+  @override
+  String get measurementOrder => 'Mérési sorrend (pl. BS-FS / BS-IS...)';
+
+  @override
+  String get updateHeight => 'Magasság frissítése';
+
+  @override
+  String get heightSaved => 'Magasság elmentve.';
+
+  @override
+  String get measurementFinishedSaved => 'Mérés lezárva és elmentve.';
+
+  @override
+  String get precisionLeveling => 'Precíziós szintezés';
+
+  @override
+  String get missingProjectOrStation =>
+      'Hiba: Nincs aktív projekt vagy állomás';
+
+  @override
+  String get saveAnyway => 'Mentés így is';
+
+  @override
+  String get photos => 'Fényképek:';
+
+  @override
+  String get takePhotoLabel => 'Fotó készítése';
+
+  @override
+  String get dataTemplate => 'Adatlap sablon';
+
+  @override
+  String get readyToMeasure => 'Kész a mérésre';
+
+  @override
+  String get rtcmLost => 'RTCM megszakadt — ellenőrizd az NTRIP kapcsolatot.';
+
+  @override
+  String get waitingInsAlignMsg =>
+      'RTK FIX megvan — add meg a bot irányát az RTK beállításoknál.';
+
+  @override
+  String get waitingRtkFix => 'Várunk RTK FIX-re';
+
+  @override
+  String get rtkAndInsRequired =>
+      'Méréshez RTK FIX és kész INS igazítás szükséges.';
+
+  @override
+  String get noPointsOnLayer => 'Nincs pont réteg.';
+
+  @override
+  String get importShpTooltip => 'Importálj egy alappont SHP-t a projektbe.';
 }

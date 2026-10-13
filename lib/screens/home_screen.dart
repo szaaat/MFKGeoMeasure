@@ -7,7 +7,6 @@ import '../providers/language_provider.dart';
 import '../services/geoid_service.dart';
 import 'map_screen.dart';
 import 'learning/learning_menu_screen.dart';
-import 'camera_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -177,30 +176,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 Column(
                   children: [
                     const Divider(indent: 50, endIndent: 50),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Text(
                       l10n.uniName,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
+                        color: Colors.grey[850],
+                        height: 1.35,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       l10n.institute,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
+                        fontWeight: FontWeight.w500,
                         color: Colors.grey[600],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    TextButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CameraScreen())),
-                      icon: const Icon(Icons.bug_report, size: 16, color: Colors.grey),
-                      label: const Text("Camera Test (v1.0.1)", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ],

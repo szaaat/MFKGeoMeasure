@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:latlong2/latlong.dart';
-import '../models/gnss_raw_measurement.dart';
+import 'package:mfk_geomeasure/models/gnss_raw_measurement.dart';
 
 class RawGnssLogSession {
   final String id;

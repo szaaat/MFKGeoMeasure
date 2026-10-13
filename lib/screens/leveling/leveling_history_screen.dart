@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/leveling/leveling_service.dart';
 import '../../services/leveling/leveling_export_service.dart';
 import '../../services/project_service.dart';
@@ -10,21 +11,23 @@ class LevelingHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final levelingService = context.watch<LevelingService>();
     final history = levelingService.history;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Szintezési Napló'),
+        title: Text(l10n.levelingLogTitle),
       ),
       body: history.isEmpty
-          ? const Center(child: Text('Nincsenek mentett jegyzőkönyvek.'))
+          ? Center(child: Text(l10n.noSavedProtocols))
           : ListView.builder(
               itemCount: history.length,
               padding: const EdgeInsets.all(12),
               itemBuilder: (context, index) {
                 final project = history[index];
                 final stationsCount = project.stations.length;
+                final modeStr = project.isPrecision ? l10n.modePrecision : l10n.modeLine;
 
                 return Card(
                   elevation: 2,
@@ -36,9 +39,9 @@ class LevelingHistoryScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 4),
-                        Text('Mód: ${project.isPrecision ? "Precíziós" : "Vonal"}'),
-                        Text('Állomások: $stationsCount db'),
-                        Text('Induló alappont: ${project.startPointId}'),
+                        Text(l10n.modeLabel(modeStr)),
+                        Text(l10n.stationsCount(stationsCount)),
+                        Text(l10n.startingPoint(project.startPointId)),
                       ],
                     ),
                     trailing: Row(
@@ -47,8 +50,19 @@ class LevelingHistoryScreen extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
                           tooltip: 'PDF Export',
-                          onPressed: () {
-                            LevelingExportService.generateAndSharePdf(project, context.read<ProjectService>());
+                          onPressed: () async {
+                            try {
+                              await LevelingExportService.generateAndSharePdf(
+                                context,
+                                project,
+                                context.read<ProjectService>(),
+                              );
+                            } catch (error) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.pdfExportFailed(error.toString()))),
+                              );
+                            }
                           },
                         ),
                         PopupMenuButton<String>(
@@ -61,8 +75,8 @@ class LevelingHistoryScreen extends StatelessWidget {
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'resume', child: Text('Szerkesztés/Folytatás')),
-                            const PopupMenuItem(value: 'delete', child: Text('Törlés', style: TextStyle(color: Colors.red))),
+                            PopupMenuItem(value: 'resume', child: Text(l10n.editResume)),
+                            PopupMenuItem(value: 'delete', child: Text(l10n.delete, style: const TextStyle(color: Colors.red))),
                           ],
                         ),
                       ],
@@ -75,20 +89,21 @@ class LevelingHistoryScreen extends StatelessWidget {
   }
 
   void _showDeleteConfirm(BuildContext context, LevelingService service, LevelingProject project) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Törlés megerősítése'),
-        content: Text('Biztosan törlöd a "${project.name}" jegyzőkönyvet?'),
+        title: Text(l10n.confirmDelete),
+        content: Text(l10n.confirmDeleteBody(project.name)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mégse')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           ElevatedButton(
             onPressed: () {
               service.deleteFromHistory(project.id);
               Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: const Text('Törlés'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

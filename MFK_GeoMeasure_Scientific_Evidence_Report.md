@@ -4,7 +4,7 @@
 **Target Publication:** *Journal of Geosciences and Engineering*, University of Miskolc  
 **Application:** MFK GeoMeasure (`hu.uni.miskolc.mfk_geomeasure`)  
 **Package Version:** `1.1.1+11`  
-**Git Commit SHA:** `c4acae92043a41981432c258a0eb1a9e13e8346b`  
+**Git Commit SHA:** `09a8866490139962340832e8d6fea921e7fe0551`  
 
 ---
 

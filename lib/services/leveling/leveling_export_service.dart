@@ -1,4 +1,6 @@
 import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -9,7 +11,16 @@ import '../../models/leveling/leveling_project.dart';
 import '../project_service.dart';
 
 class LevelingExportService {
-  static Future<void> generateAndSharePdf(LevelingProject project, ProjectService projectService) async {
+  static Future<void> generateAndSharePdf(
+    BuildContext context,
+    LevelingProject project,
+    ProjectService projectService,
+  ) async {
+    try {
+    final renderObject = context.findRenderObject();
+    final sharePositionOrigin = renderObject is RenderBox && renderObject.hasSize
+        ? renderObject.localToGlobal(Offset.zero) & renderObject.size
+        : null;
     final pdf = pw.Document();
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
 
@@ -30,11 +41,12 @@ class LevelingExportService {
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: PdfPageFormat.a4.landscape,
+        maxPages: 1000,
         header: (context) => pw.Container(
           alignment: pw.Alignment.centerRight,
           margin: const pw.EdgeInsets.only(bottom: 20),
-          child: pw.Text('MFK GeoMeasure - Szintezesi Jegyzokonyv', style: pw.TextStyle(color: PdfColors.grey700, fontSize: 10)),
+          child: pw.Text('MFK GeoMeasure - Szintezesi Jegyzokonyv', style: const pw.TextStyle(color: PdfColors.grey700, fontSize: 10)),
         ),
         build: (context) => [
           pw.Header(
@@ -87,10 +99,28 @@ class LevelingExportService {
     );
 
     final output = await getTemporaryDirectory();
-    final file = File("${output.path}/jegyzokonyv_${project.name.replaceAll(' ', '_')}.pdf");
-    await file.writeAsBytes(await pdf.save());
+    final safeName = project.name.trim()
+        .replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+    final timestamp = DateFormat('yyyyMMdd_HHmmss_SSS').format(DateTime.now());
+    final file = File(
+      '${output.path}/leveling_${safeName.isEmpty ? 'project' : safeName}_$timestamp.pdf',
+    );
+    await file.writeAsBytes(await pdf.save(), flush: true);
+    if (await file.length() == 0) {
+      throw const FileSystemException('A létrehozott PDF üres.');
+    }
 
-    await Share.shareXFiles([XFile(file.path)], text: 'Szintezési Jegyzőkönyv: ${project.name}');
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(file.path)],
+      text: 'Szintezési Jegyzőkönyv: ${project.name}',
+      sharePositionOrigin: sharePositionOrigin,
+    ));
+    } catch (error, stackTrace) {
+      debugPrint('[LEVELING PDF] Export failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   static pw.Widget _buildInfoRow(String label, String value) {
@@ -99,7 +129,7 @@ class LevelingExportService {
       child: pw.Row(
         children: [
           pw.SizedBox(width: 150, child: pw.Text(label, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))),
-          pw.Text(value, style: const pw.TextStyle(fontSize: 10)),
+          pw.Expanded(child: pw.Text(value, style: const pw.TextStyle(fontSize: 10))),
         ],
       ),
     );
@@ -190,7 +220,7 @@ class LevelingExportService {
   }
 
   static pw.Widget _buildPrecisionTable(LevelingProject project, ProjectService projectService, String Function(String) clean) {
-    final headers = ['Allas', 'Pontok', 'Sorozat 1', 'Sorozat 2', 'd (mm)', 'atl dH (m)', 'Info'];
+    final headers = ['Allas', 'Pontok', 'Fekete skala (m)', 'Voros skala (m)', 'Elteres (mm)', 'Atlagos dH (m)', 'Info'];
     final List<List<String>> data = [];
 
     for (var s in project.stations) {
@@ -207,7 +237,7 @@ class LevelingExportService {
         'H1: ${s.h1?.toStringAsFixed(1) ?? '-'}\nE1: ${s.e1?.toStringAsFixed(1) ?? '-'}',
         'H2: ${s.h2?.toStringAsFixed(1) ?? '-'}\nE2: ${s.e2?.toStringAsFixed(1) ?? '-'}',
         s.stationDiff != null ? (s.stationDiff! * 1000).toStringAsFixed(1) : '-',
-        s.meanDeltaH != null ? (s.meanDeltaH! / 1000).toStringAsFixed(4) : '-',
+        s.meanDeltaH?.toStringAsFixed(4) ?? '-',
         info
       ]);
     }
@@ -234,7 +264,7 @@ class LevelingExportService {
     double total = 0;
     for (var s in project.stations) {
       if (project.isPrecision && s.meanDeltaH != null) {
-        total += (s.meanDeltaH! / 1000);
+        total += s.meanDeltaH!;
       } else if (s.backsight != null && s.foresight != null) {
         total += (s.backsight! - s.foresight!);
       }

@@ -2,27 +2,34 @@ import 'dart:async';
 import 'dart:io';
 import 'package:geolocator/geolocator.dart';
 import 'package:raw_gnss/raw_gnss.dart';
-import '../../models/gnss_fix.dart';
-import '../../models/gnss_raw_measurement.dart';
-import 'gnss_provider.dart';
+import 'package:mfk_geomeasure/models/gnss_fix.dart';
+import 'package:mfk_geomeasure/models/gnss_raw_measurement.dart';
+import 'package:mfk_geomeasure/services/gnss/gnss_provider.dart';
 import '../geoid_service.dart';
 
 class InternalGnssProvider implements GnssProvider {
   final _fixController = StreamController<GnssFix>.broadcast();
-  final _rawController = StreamController<GnssRawMeasurement>.broadcast();
+  final _rawMeasurementController =
+      StreamController<GnssRawMeasurement>.broadcast();
+  final _rawByteController = StreamController<List<int>>.broadcast();
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription? _rawSubscription;
-  
+
   final _rawGnss = RawGnss();
   final GeoidCorrectionService? _geoidService;
 
-  InternalGnssProvider({GeoidCorrectionService? geoidService}) : _geoidService = geoidService;
+  InternalGnssProvider({GeoidCorrectionService? geoidService})
+      : _geoidService = geoidService;
 
   @override
   Stream<GnssFix> get fixStream => _fixController.stream;
 
   @override
-  Stream<GnssRawMeasurement> get rawMeasurementStream => _rawController.stream;
+  Stream<List<int>> get rawStream => _rawByteController.stream;
+
+  @override
+  Stream<GnssRawMeasurement> get rawMeasurementStream =>
+      _rawMeasurementController.stream;
 
   @override
   bool get supportsRtcmInput => false;
@@ -51,8 +58,9 @@ class InternalGnssProvider implements GnssProvider {
       distanceFilter: 0,
     );
 
-    _positionSubscription = Geolocator.getPositionStream(locationSettings: locationSettings)
-        .listen((Position position) {
+    _positionSubscription =
+        Geolocator.getPositionStream(locationSettings: locationSettings)
+            .listen((Position position) {
       _fixController.add(_mapPositionToGnssFix(position));
     });
 
@@ -60,17 +68,22 @@ class InternalGnssProvider implements GnssProvider {
       _rawSubscription = _rawGnss.gnssMeasurementEvents.listen((model) {
         final now = DateTime.now();
         for (var m in (model.measurements ?? [])) {
-          _rawController.add(GnssRawMeasurement(
+          _rawMeasurementController.add(GnssRawMeasurement(
             timestamp: now,
-            svid: m.svid ?? 0,
-            constellationType: m.constellationType ?? 0,
-            accumulatedDeltaRangeMeters: m.accumulatedDeltaRangeMeters,
-            accumulatedDeltaRangeState: m.accumulatedDeltaRangeState,
-            receivedSvTimeNanos: m.receivedSvTimeNanos,
-            cn0DbHz: m.cn0DbHz,
-            carrierFrequencyHz: m.carrierFrequencyHz,
-            timeOffsetNanos: m.timeOffsetNanos,
-            multipathIndicator: m.multipathIndicator,
+            svid: (m.svid as num?)?.toInt() ?? 0,
+            constellationType:
+                (m.constellationType as num?)?.toInt() ?? 0,
+            accumulatedDeltaRangeMeters:
+                (m.accumulatedDeltaRangeMeters as num?)?.toDouble(),
+            accumulatedDeltaRangeState:
+                (m.accumulatedDeltaRangeState as num?)?.toInt(),
+            receivedSvTimeNanos:
+                (m.receivedSvTimeNanos as num?)?.toInt(),
+            cn0DbHz: (m.cn0DbHz as num?)?.toDouble(),
+            carrierFrequencyHz: (m.carrierFrequencyHz as num?)?.toDouble(),
+            timeOffsetNanos: (m.timeOffsetNanos as num?)?.toInt(),
+            multipathIndicator:
+                (m.multipathIndicator as num?)?.toInt(),
           ));
         }
       });
@@ -94,7 +107,8 @@ class InternalGnssProvider implements GnssProvider {
   void dispose() {
     disconnect();
     _fixController.close();
-    _rawController.close();
+    _rawMeasurementController.close();
+    _rawByteController.close();
   }
 
   GnssFix _mapPositionToGnssFix(Position pos) {
@@ -104,21 +118,27 @@ class InternalGnssProvider implements GnssProvider {
     bool isEllipsoidal = true;
 
     if (Platform.isIOS) {
-      // iOS esetén a geolocator MSL magasságot ad (az alkalmazás korábbi feltételezése szerint)
       isEllipsoidal = false;
       mslAltitude = pos.altitude;
       if (_geoidService != null) {
-        geoidSeparation = _geoidService!.getUndulation(pos.latitude, pos.longitude);
+        geoidSeparation = _geoidService!.getUndulation(
+          pos.latitude,
+          pos.longitude,
+          referenceFrame: GeoidInputFrame.assumed,
+        );
         if (geoidSeparation != null) {
           ellipsoidalHeight = mslAltitude + geoidSeparation;
         }
       }
     } else {
-      // Android esetén a geolocator ellipszoidi magasságot ad
       isEllipsoidal = true;
       ellipsoidalHeight = pos.altitude;
       if (_geoidService != null) {
-        geoidSeparation = _geoidService!.getUndulation(pos.latitude, pos.longitude);
+        geoidSeparation = _geoidService!.getUndulation(
+          pos.latitude,
+          pos.longitude,
+          referenceFrame: GeoidInputFrame.assumed,
+        );
         if (geoidSeparation != null) {
           mslAltitude = ellipsoidalHeight - geoidSeparation;
         }
@@ -128,7 +148,7 @@ class InternalGnssProvider implements GnssProvider {
     return GnssFix(
       latitude: pos.latitude,
       longitude: pos.longitude,
-      altitude: pos.altitude, // Nyers érték (Android: Ellipsoid, iOS: MSL)
+      altitude: pos.altitude,
       ellipsoidalHeight: ellipsoidalHeight,
       isEllipsoidal: isEllipsoidal,
       mslAltitude: mslAltitude,

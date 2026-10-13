@@ -4,6 +4,27 @@ import 'field_definition.dart';
 
 enum FeatureType { point, line, polygon }
 
+enum LayerCrs {
+  wgs84,
+  eov,
+}
+
+extension LayerCrsExtension on LayerCrs {
+  String get epsg => this == LayerCrs.eov ? 'EPSG:23700' : 'EPSG:4326';
+  String get label => this == LayerCrs.eov ? 'EOV (EPSG:23700)' : 'WGS84 (EPSG:4326)';
+
+  static LayerCrs fromEpsg(String? value) {
+    return value == 'EPSG:23700' ? LayerCrs.eov : LayerCrs.wgs84;
+  }
+}
+
+class SurveyMethods {
+  static const String rtk = "RTK";
+  static const String internalGps = "PHONE_GPS";
+  static const String externalGnss = "EXTERNAL_GNSS";
+  static const String imported = "IMPORTED";
+}
+
 class GeoFeature {
   final String id;
   String name;
@@ -23,15 +44,21 @@ class GeoFeature {
     required this.name,
     this.description = "",
     required this.type,
-    required this.geometry,
-    this.altitudes = const [],
-    this.photos = const [],
+    required List<LatLng> geometry,
+    List<double>? altitudes,
+    List<String>? photos,
     this.templateName,
-    this.customData = const {},
-    this.properties = const {},
-    this.calculatedStats = const {},
+    Map<String, dynamic>? customData,
+    Map<String, dynamic>? properties,
+    Map<String, dynamic>? calculatedStats,
     DateTime? createdAt,
   })  : id = id ?? const Uuid().v4(),
+        geometry = List<LatLng>.from(geometry),
+        altitudes = altitudes != null ? List<double>.from(altitudes) : [],
+        photos = photos != null ? List<String>.from(photos) : [],
+        customData = customData != null ? Map<String, dynamic>.from(customData) : {},
+        properties = properties != null ? Map<String, dynamic>.from(properties) : {},
+        calculatedStats = calculatedStats != null ? Map<String, dynamic>.from(calculatedStats) : {},
         createdAt = createdAt ?? DateTime.now();
 
   // --- JSON BETÖLTÉS ---
@@ -47,7 +74,7 @@ class GeoFeature {
       templateName: json['templateName'],
       customData: Map<String, dynamic>.from(json['customData'] ?? {}),
       properties: Map<String, dynamic>.from(json['properties'] ?? {}),
-      calculatedStats: json['calculatedStats'] ?? {},
+      calculatedStats: Map<String, dynamic>.from(json['calculatedStats'] ?? {}),
       createdAt: DateTime.parse(json['createdAt']),
     );
   }
@@ -75,6 +102,9 @@ class ProjectLayer {
   List<GeoFeature> features;
   List<CustomFieldDefinition> fields; // Új típusos meződefiníciók
   bool isVisible;
+  String sourceType; // 'survey' or 'import'
+  String? crsInfo;   // e.g. 'EOV EPSG:23700'
+  LayerCrs coordinateCrs;
 
   ProjectLayer({
     String? id,
@@ -82,9 +112,14 @@ class ProjectLayer {
     List<GeoFeature>? features,
     List<CustomFieldDefinition>? fields,
     this.isVisible = true,
+    this.sourceType = 'survey',
+    this.crsInfo,
+    this.coordinateCrs = LayerCrs.wgs84,
   }) : id = id ?? const Uuid().v4(),
         features = features ?? [],
         fields = fields ?? [];
+
+  Set<FeatureType> get containedGeometryTypes => features.map((f) => f.type).toSet();
 
   factory ProjectLayer.fromJson(Map<String, dynamic> json) {
     final List<CustomFieldDefinition> fields = (json['fields'] as List? ?? [])
@@ -109,6 +144,9 @@ class ProjectLayer {
       id: json['id'],
       name: json['name'],
       isVisible: json['isVisible'] ?? true,
+      sourceType: json['sourceType'] ?? 'survey',
+      crsInfo: json['crsInfo'],
+      coordinateCrs: LayerCrsExtension.fromEpsg(json['coordinateCrs']),
       features: features,
       fields: fields,
     );
@@ -131,6 +169,9 @@ class ProjectLayer {
     'id': id,
     'name': name,
     'isVisible': isVisible,
+    'sourceType': sourceType,
+    'crsInfo': crsInfo,
+    'coordinateCrs': coordinateCrs.epsg,
     'features': features.map((f) => f.toJson()).toList(),
     'fields': fields.map((f) => f.toJson()).toList(),
   };
@@ -142,12 +183,14 @@ class Project {
   final String id;
   String name;
   List<ProjectLayer> layers;
+  String? activeLayerId; // New field to persist active layer
   final int formatVersion;
   DateTime createdAt;
 
   Project({
     String? id,
     required this.name,
+    this.activeLayerId,
     List<ProjectLayer>? layers,
     int? formatVersion,
     DateTime? createdAt,
@@ -157,10 +200,12 @@ class Project {
         createdAt = createdAt ?? DateTime.now();
 
   factory Project.fromJson(Map<String, dynamic> json) {
+    final List<ProjectLayer> loadedLayers = (json['layers'] as List).map((l) => ProjectLayer.fromJson(l)).toList();
     return Project(
       id: json['id'],
       name: json['name'],
-      layers: (json['layers'] as List).map((l) => ProjectLayer.fromJson(l)).toList(),
+      activeLayerId: json['activeLayerId'],
+      layers: loadedLayers,
       formatVersion: json['formatVersion'] ?? 1,
       createdAt: DateTime.parse(json['createdAt']),
     );
@@ -169,6 +214,7 @@ class Project {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
+    'activeLayerId': activeLayerId,
     'layers': layers.map((l) => l.toJson()).toList(),
     'formatVersion': formatVersion,
     'createdAt': createdAt.toIso8601String(),

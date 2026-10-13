@@ -167,7 +167,7 @@ abstract class AppLocalizations {
   /// No description provided for @uniName.
   ///
   /// In en, this message translates to:
-  /// **'University of Miskolc, MFK'**
+  /// **'University of Miskolc\nFaculty of Earth Science and Engineering'**
   String get uniName;
 
   /// No description provided for @institute.
@@ -1538,6 +1538,18 @@ abstract class AppLocalizations {
   /// **'Stability threshold (s)'**
   String get stabilityThreshold;
 
+  /// No description provided for @allowFloatSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Float Save'**
+  String get allowFloatSave;
+
+  /// No description provided for @allowFloatSaveSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: Point saving requires RTK FIX. On: Point saving allowed in RTK Float state.'**
+  String get allowFloatSaveSub;
+
   /// No description provided for @lastGgaSent.
   ///
   /// In en, this message translates to:
@@ -1555,6 +1567,720 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reconnecting...'**
   String get reconnecting;
+
+  /// No description provided for @waitingStableFix.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for stable RTK FIX ({seconds}s)...'**
+  String waitingStableFix(String seconds);
+
+  /// No description provided for @rtkStatusWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Stable FIX required'**
+  String get rtkStatusWaiting;
+
+  /// No description provided for @rtkStatusMeasuring.
+  ///
+  /// In en, this message translates to:
+  /// **'Measuring stability...'**
+  String get rtkStatusMeasuring;
+
+  /// No description provided for @rtkStatusNoFix.
+  ///
+  /// In en, this message translates to:
+  /// **'GNSS FIX required'**
+  String get rtkStatusNoFix;
+
+  /// No description provided for @ntripProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'NTRIP Provider'**
+  String get ntripProvider;
+
+  /// No description provided for @providerCentipede.
+  ///
+  /// In en, this message translates to:
+  /// **'Centipede-RTK'**
+  String get providerCentipede;
+
+  /// No description provided for @providerGnssNet.
+  ///
+  /// In en, this message translates to:
+  /// **'GNSSnet.hu'**
+  String get providerGnssNet;
+
+  /// No description provided for @providerCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom / Manual'**
+  String get providerCustom;
+
+  /// No description provided for @mountpointNear.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearest (NEAR)'**
+  String get mountpointNear;
+
+  /// No description provided for @mountpointNear4.
+  ///
+  /// In en, this message translates to:
+  /// **'Nearest (NEAR4)'**
+  String get mountpointNear4;
+
+  /// No description provided for @battery.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery'**
+  String get battery;
+
+  /// No description provided for @firmwareVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Firmware Version'**
+  String get firmwareVersion;
+
+  /// No description provided for @positionSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Position Source'**
+  String get positionSource;
+
+  /// No description provided for @insStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'INS Status'**
+  String get insStatus;
+
+  /// No description provided for @rtkStatusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'RTK Status'**
+  String get rtkStatusLabel;
+
+  /// No description provided for @insAlignment.
+  ///
+  /// In en, this message translates to:
+  /// **'INS ALIGNMENT'**
+  String get insAlignment;
+
+  /// No description provided for @insState.
+  ///
+  /// In en, this message translates to:
+  /// **'INS State'**
+  String get insState;
+
+  /// No description provided for @m21Position.
+  ///
+  /// In en, this message translates to:
+  /// **'M21 Position'**
+  String get m21Position;
+
+  /// No description provided for @noData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data'**
+  String get noData;
+
+  /// No description provided for @age.
+  ///
+  /// In en, this message translates to:
+  /// **'age:'**
+  String get age;
+
+  /// No description provided for @packets.
+  ///
+  /// In en, this message translates to:
+  /// **'Packets:'**
+  String get packets;
+
+  /// No description provided for @bytes.
+  ///
+  /// In en, this message translates to:
+  /// **'Bytes:'**
+  String get bytes;
+
+  /// No description provided for @compass.
+  ///
+  /// In en, this message translates to:
+  /// **'Compass'**
+  String get compass;
+
+  /// No description provided for @rtcmRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh RTCM'**
+  String get rtcmRefresh;
+
+  /// No description provided for @m21Configure.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure M21'**
+  String get m21Configure;
+
+  /// No description provided for @saveM21Config.
+  ///
+  /// In en, this message translates to:
+  /// **'Save M21 Config'**
+  String get saveM21Config;
+
+  /// No description provided for @receiverResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiver response: {msg}'**
+  String receiverResponse(String msg);
+
+  /// No description provided for @rawDiagnosticsLogger.
+  ///
+  /// In en, this message translates to:
+  /// **'RAW DIAGNOSTICS & LOGGER'**
+  String get rawDiagnosticsLogger;
+
+  /// No description provided for @firmwareUpdateOta.
+  ///
+  /// In en, this message translates to:
+  /// **'FIRMWARE UPDATE (OTA)'**
+  String get firmwareUpdateOta;
+
+  /// No description provided for @noMountpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'no mountpoint'**
+  String get noMountpoint;
+
+  /// No description provided for @connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get connect;
+
+  /// No description provided for @correctionAgeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Correction Age'**
+  String get correctionAgeLabel;
+
+  /// No description provided for @never.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get never;
+
+  /// No description provided for @connectedWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected (Wait)'**
+  String get connectedWait;
+
+  /// No description provided for @dataActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Active'**
+  String get dataActive;
+
+  /// No description provided for @connecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting...'**
+  String get connecting;
+
+  /// No description provided for @disconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected'**
+  String get disconnected;
+
+  /// No description provided for @notConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Configured'**
+  String get notConfigured;
+
+  /// No description provided for @passwordLeaveEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Password (leave empty if unchanged)'**
+  String get passwordLeaveEmpty;
+
+  /// No description provided for @ggaInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'GGA Interval (s)'**
+  String get ggaInterval;
+
+  /// No description provided for @searching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching...'**
+  String get searching;
+
+  /// No description provided for @controlPointCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Control Point Check'**
+  String get controlPointCheckTitle;
+
+  /// No description provided for @noPointLayerImportShp.
+  ///
+  /// In en, this message translates to:
+  /// **'No point layer. Please import a control point SHP into the project.'**
+  String get noPointLayerImportShp;
+
+  /// No description provided for @unsupportedCrsMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported or unknown CRS. EOV EPSG:23700 or WGS84 EPSG:4326 is required.'**
+  String get unsupportedCrsMsg;
+
+  /// No description provided for @measurement.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurement: '**
+  String get measurement;
+
+  /// No description provided for @startMeasurement.
+  ///
+  /// In en, this message translates to:
+  /// **'START MEASUREMENT'**
+  String get startMeasurement;
+
+  /// No description provided for @connectToMfkRtk.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to MFKRTK receiver.'**
+  String get connectToMfkRtk;
+
+  /// No description provided for @nonFixedWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-FIXED epochs will be kept, but marked with a warning.'**
+  String get nonFixedWarning;
+
+  /// No description provided for @refLayerAndPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference layer and point'**
+  String get refLayerAndPoint;
+
+  /// No description provided for @pointLayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Point layer'**
+  String get pointLayer;
+
+  /// No description provided for @controlPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Control Point'**
+  String get controlPoint;
+
+  /// No description provided for @eovFromAttributes.
+  ///
+  /// In en, this message translates to:
+  /// **'EOV E/N from attribute fields'**
+  String get eovFromAttributes;
+
+  /// No description provided for @eovFromAttributesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: projects geometry from WGS84 to EOV.'**
+  String get eovFromAttributesSub;
+
+  /// No description provided for @pointIdField.
+  ///
+  /// In en, this message translates to:
+  /// **'Point ID field'**
+  String get pointIdField;
+
+  /// No description provided for @pointNameField.
+  ///
+  /// In en, this message translates to:
+  /// **'Point Name field'**
+  String get pointNameField;
+
+  /// No description provided for @heightSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Height source'**
+  String get heightSource;
+
+  /// No description provided for @refHeightSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference height system'**
+  String get refHeightSystem;
+
+  /// No description provided for @unknownNoDh.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown — no ΔH'**
+  String get unknownNoDh;
+
+  /// No description provided for @ellipsoidal.
+  ///
+  /// In en, this message translates to:
+  /// **'Ellipsoidal'**
+  String get ellipsoidal;
+
+  /// No description provided for @orthometricBaltic.
+  ///
+  /// In en, this message translates to:
+  /// **'Orthometric / Baltic'**
+  String get orthometricBaltic;
+
+  /// No description provided for @currentMfkRtkPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Current MFKRTK position'**
+  String get currentMfkRtkPosition;
+
+  /// No description provided for @waitingForMfkRtk.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for MFKRTK position…'**
+  String get waitingForMfkRtk;
+
+  /// No description provided for @aggregatedResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Aggregated results — all sessions'**
+  String get aggregatedResults;
+
+  /// No description provided for @sessionsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions ({count})'**
+  String sessionsCount(int count);
+
+  /// No description provided for @controlPointSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Control Point Summary'**
+  String get controlPointSummary;
+
+  /// No description provided for @noExportableMeasurements.
+  ///
+  /// In en, this message translates to:
+  /// **'No measurements available to export.'**
+  String get noExportableMeasurements;
+
+  /// No description provided for @csvExportError.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV export error: {error}'**
+  String csvExportError(String error);
+
+  /// No description provided for @levelingLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leveling Log'**
+  String get levelingLogTitle;
+
+  /// No description provided for @noSavedProtocols.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved leveling protocols.'**
+  String get noSavedProtocols;
+
+  /// No description provided for @modeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode: {mode}'**
+  String modeLabel(String mode);
+
+  /// No description provided for @modePrecision.
+  ///
+  /// In en, this message translates to:
+  /// **'Precision'**
+  String get modePrecision;
+
+  /// No description provided for @modeLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Line'**
+  String get modeLine;
+
+  /// No description provided for @stationsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Stations: {count}'**
+  String stationsCount(int count);
+
+  /// No description provided for @startingPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Start point: {point}'**
+  String startingPoint(String point);
+
+  /// No description provided for @pdfExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF export failed: {error}'**
+  String pdfExportFailed(String error);
+
+  /// No description provided for @editResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit/Resume'**
+  String get editResume;
+
+  /// No description provided for @confirmDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Delete'**
+  String get confirmDelete;
+
+  /// No description provided for @confirmDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{name}\" protocol?'**
+  String confirmDeleteBody(String name);
+
+  /// No description provided for @noActiveProject.
+  ///
+  /// In en, this message translates to:
+  /// **'No active project.'**
+  String get noActiveProject;
+
+  /// No description provided for @cardView.
+  ///
+  /// In en, this message translates to:
+  /// **'Card view'**
+  String get cardView;
+
+  /// No description provided for @protocolView.
+  ///
+  /// In en, this message translates to:
+  /// **'Protocol view'**
+  String get protocolView;
+
+  /// No description provided for @selectAdjustmentMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Select adjustment mode'**
+  String get selectAdjustmentMode;
+
+  /// No description provided for @heightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Height (m)'**
+  String get heightLabel;
+
+  /// No description provided for @newLeveling.
+  ///
+  /// In en, this message translates to:
+  /// **'New Leveling'**
+  String get newLeveling;
+
+  /// No description provided for @startLevelingLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Leveling Line'**
+  String get startLevelingLine;
+
+  /// No description provided for @lineName.
+  ///
+  /// In en, this message translates to:
+  /// **'Line Name'**
+  String get lineName;
+
+  /// No description provided for @startPointName.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Point Name'**
+  String get startPointName;
+
+  /// No description provided for @startHeightM.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Height (m)'**
+  String get startHeightM;
+
+  /// No description provided for @precisionMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Precision Mode (double scale rod)'**
+  String get precisionMode;
+
+  /// No description provided for @precisionModeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Off: Line leveling'**
+  String get precisionModeSub;
+
+  /// No description provided for @selectPointFromProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Select point from project'**
+  String get selectPointFromProject;
+
+  /// No description provided for @newIntermediatePoint.
+  ///
+  /// In en, this message translates to:
+  /// **'New Intermediate Point'**
+  String get newIntermediatePoint;
+
+  /// No description provided for @noActiveLevelingLine.
+  ///
+  /// In en, this message translates to:
+  /// **'No active leveling line'**
+  String get noActiveLevelingLine;
+
+  /// No description provided for @startNewLine.
+  ///
+  /// In en, this message translates to:
+  /// **'START NEW LINE'**
+  String get startNewLine;
+
+  /// No description provided for @finishAndSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish Measurement and Save'**
+  String get finishAndSave;
+
+  /// No description provided for @discardMeasurement.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Measurement'**
+  String get discardMeasurement;
+
+  /// No description provided for @reviewLog.
+  ///
+  /// In en, this message translates to:
+  /// **'REVIEW MEASUREMENTS (LOG)'**
+  String get reviewLog;
+
+  /// No description provided for @noIntermediatePoints.
+  ///
+  /// In en, this message translates to:
+  /// **'No intermediate points recorded'**
+  String get noIntermediatePoints;
+
+  /// No description provided for @saveHeightToPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE HEIGHT TO POINT'**
+  String get saveHeightToPoint;
+
+  /// No description provided for @missingBacksightError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: Missing backsight reading!'**
+  String get missingBacksightError;
+
+  /// No description provided for @finishMeasurement.
+  ///
+  /// In en, this message translates to:
+  /// **'FINISH MEASUREMENT'**
+  String get finishMeasurement;
+
+  /// No description provided for @negativeReadingError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: Negative reading!'**
+  String get negativeReadingError;
+
+  /// No description provided for @measurementOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurement order (e.g. BS-FS / BS-IS...)'**
+  String get measurementOrder;
+
+  /// No description provided for @updateHeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Height'**
+  String get updateHeight;
+
+  /// No description provided for @heightSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Height saved.'**
+  String get heightSaved;
+
+  /// No description provided for @measurementFinishedSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurement finished and saved.'**
+  String get measurementFinishedSaved;
+
+  /// No description provided for @precisionLeveling.
+  ///
+  /// In en, this message translates to:
+  /// **'Precision Leveling'**
+  String get precisionLeveling;
+
+  /// No description provided for @missingProjectOrStation.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: No active project or station'**
+  String get missingProjectOrStation;
+
+  /// No description provided for @saveAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get saveAnyway;
+
+  /// No description provided for @photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos:'**
+  String get photos;
+
+  /// No description provided for @takePhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get takePhotoLabel;
+
+  /// No description provided for @dataTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Data template'**
+  String get dataTemplate;
+
+  /// No description provided for @readyToMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to measure'**
+  String get readyToMeasure;
+
+  /// No description provided for @rtcmLost.
+  ///
+  /// In en, this message translates to:
+  /// **'RTCM lost — check NTRIP connection.'**
+  String get rtcmLost;
+
+  /// No description provided for @waitingInsAlignMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'RTK FIX acquired — specify rod direction in RTK settings.'**
+  String get waitingInsAlignMsg;
+
+  /// No description provided for @waitingRtkFix.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for RTK FIX'**
+  String get waitingRtkFix;
+
+  /// No description provided for @rtkAndInsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'RTK FIX and completed INS alignment required to measure.'**
+  String get rtkAndInsRequired;
+
+  /// No description provided for @noPointsOnLayer.
+  ///
+  /// In en, this message translates to:
+  /// **'No point layer.'**
+  String get noPointsOnLayer;
+
+  /// No description provided for @importShpTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Please import a control point SHP into the project.'**
+  String get importShpTooltip;
 }
 
 class _AppLocalizationsDelegate

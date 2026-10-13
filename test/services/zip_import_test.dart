@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mfk_geomeasure/services/import_service.dart';
 import 'package:mfk_geomeasure/services/eov_service.dart';
-import 'package:path/path.dart' as p;
 
 void main() {
   group('ImportService - Multi-file & ZIP Logic', () {
@@ -10,7 +9,8 @@ void main() {
     late EovService eovService;
 
     setUp(() {
-      eovService = EovService();
+      eovService =
+          EovService(null, false, EovInputFrame.unknown, EovTransformMode.legacy);
       importService = ImportService();
       importService.updateEovService(eovService);
     });

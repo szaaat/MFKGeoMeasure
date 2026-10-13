@@ -398,8 +398,18 @@ class LevelingService extends ChangeNotifier {
         .fold(0.0, (sum, s) => sum + s.foresight!);
   }
 
-  /// Számított magasságkülönbség
-  double get calculatedHeightDifference => sumBacksights - sumForesights;
+  /// Precíziós módban a két lécskála magasságkülönbségének átlaga, egyébként ΣBS - ΣFS.
+  double get calculatedHeightDifference {
+    final project = _activeProject;
+    if (project == null) return 0.0;
+    if (project.isPrecision) {
+      return project.stations.fold(
+        0.0,
+        (sum, station) => sum + (station.meanDeltaH ?? 0.0),
+      );
+    }
+    return sumBacksights - sumForesights;
+  }
 
   /// Számított végmagasság
   double get calculatedEndHeight {
