@@ -517,5 +517,10 @@
   "waitingRtkFix": "Várunk RTK FIX-re",
   "rtkAndInsRequired": "Méréshez RTK FIX és kész INS igazítás szükséges.",
   "noPointsOnLayer": "Nincs pont réteg.",
-  "importShpTooltip": "Importálj egy alappont SHP-t a projektbe."
+  "importShpTooltip": "Importálj egy alappont SHP-t a projektbe.",
+  "locationDisclosureTitle": "Helyadatok és Háttérbeli Adatgyűjtés",
+  "locationDisclosureHighlight": "Kiemelt tájékoztatás a helyadatok használatáról",
+  "locationDisclosureBody": "Az MFK GeoMeasure helyadatait gyűjti a terepi mérésekhez, folyamatos nyomvonal-rögzítéshez és GNSS/RTK pozícionáláshoz akkor is, amikor az alkalmazás a háttérben fut vagy a képernyő ki van kapcsolva.\n\nA helyadatok kizárólag az Ön eszközén kerülnek feldolgozásra a magyar EOV (EPSG:23700) koordináták és Balti magasságok számításához. Az adatokat nem adjuk el és nem osztjuk meg harmadik felekkel.",
+  "locationDisclosureAccept": "Elfogadom és Folytatás",
+  "locationDisclosureDecline": "Nem kérem (Csak előtérben)"
 }

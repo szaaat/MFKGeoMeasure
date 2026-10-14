@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/language_provider.dart';
 import '../services/geoid_service.dart';
+import '../widgets/location_disclosure_dialog.dart';
 import 'map_screen.dart';
 import 'learning/learning_menu_screen.dart';
 
@@ -19,13 +20,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Geoid fájl betöltése az app indulásakor (csak ha még nincs betöltve)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Geoid fájl betöltése és Kiemelt Tájékoztatás (Prominent Disclosure) ellenőrzése
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         final service = context.read<GeoidCorrectionService>();
         if (!service.isLoaded) {
           service.loadGeoidFile();
         }
+        await LocationDisclosureService.checkAndShowDisclosure(context);
       }
     });
   }
@@ -124,7 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
+                      await LocationDisclosureService.checkAndShowDisclosure(context);
+                      if (!context.mounted) return;
                       Navigator.push(
                         context,
                         MaterialPageRoute(

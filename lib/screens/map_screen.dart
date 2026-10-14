@@ -23,6 +23,7 @@ import '../services/geoid_service.dart';
 import '../services/eov_service.dart';
 import '../services/project_service.dart';
 import '../services/data_validation_service.dart';
+import '../widgets/location_disclosure_dialog.dart';
 import '../services/gnss_info_service.dart';
 import 'control_point_check_screen.dart';
 import '../services/photo_service.dart';
@@ -306,6 +307,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _startLocationUpdates() async {
+    await LocationDisclosureService.checkAndShowDisclosure(context);
+    if (!mounted) return;
     final gnssService = context.read<GnssInfoService>();
 
     // Kezdeti pozíció lekérése az utolsó ismert fix alapján (ha van)

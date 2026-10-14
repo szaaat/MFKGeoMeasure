@@ -2281,6 +2281,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please import a control point SHP into the project.'**
   String get importShpTooltip;
+
+  String get locationDisclosureTitle;
+  String get locationDisclosureHighlight;
+  String get locationDisclosureBody;
+  String get locationDisclosureAccept;
+  String get locationDisclosureDecline;
 }
 
 class _AppLocalizationsDelegate

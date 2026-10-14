@@ -1154,4 +1154,21 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get importShpTooltip => 'Importálj egy alappont SHP-t a projektbe.';
+
+  @override
+  String get locationDisclosureTitle => 'Helyadatok és Háttérbeli Adatgyűjtés';
+
+  @override
+  String get locationDisclosureHighlight =>
+      'Kiemelt tájékoztatás a helyadatok használatáról';
+
+  @override
+  String get locationDisclosureBody =>
+      'Az MFK GeoMeasure helyadatait gyűjti a terepi mérésekhez, folyamatos nyomvonal-rögzítéshez és GNSS/RTK pozícionáláshoz akkor is, amikor az alkalmazás a háttérben fut vagy a képernyő ki van kapcsolva.\n\nA helyadatok kizárólag az Ön eszközén kerülnek feldolgozásra a magyar EOV (EPSG:23700) koordináták és Balti magasságok számításához. Az adatokat nem adjuk el és nem osztjuk meg harmadik felekkel.';
+
+  @override
+  String get locationDisclosureAccept => 'Elfogadom és Folytatás';
+
+  @override
+  String get locationDisclosureDecline => 'Nem kérem (Csak előtérben)';
 }

@@ -1153,4 +1153,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importShpTooltip =>
       'Please import a control point SHP into the project.';
+
+  @override
+  String get locationDisclosureTitle => 'Location & Background Tracking';
+
+  @override
+  String get locationDisclosureHighlight =>
+      'Prominent Disclosure on Location Usage';
+
+  @override
+  String get locationDisclosureBody =>
+      'MFK GeoMeasure collects location data to enable field surveying, continuous survey track recording, and GNSS/RTK positioning even when the app is closed or not in use.\n\nYour location data is processed locally on your device to calculate coordinates in the Hungarian EOV system (EPSG:23700) and Baltic orthometric heights. Data is never sold or shared with third parties.';
+
+  @override
+  String get locationDisclosureAccept => 'Agree & Continue';
+
+  @override
+  String get locationDisclosureDecline => 'No Thanks (Foreground Only)';
 }
