@@ -1,10 +1,10 @@
 # MFK GeoMeasure: Scientific Evidence Verification Report
 
-**Audit Date:** May 2024 / Active State Review  
+**Audit Date:** May 2024 / Verified Revision  
 **Target Publication:** *Journal of Geosciences and Engineering*, University of Miskolc  
 **Application:** MFK GeoMeasure (`hu.uni.miskolc.mfk_geomeasure`)  
 **Package Version:** `1.1.1+11`  
-**Git Commit SHA:** `66e597b7c24f6da6eb02e5e47ee1f21cb92e2f14`  
+**Git Commit SHA:** `1a79a261ae60f6416fac006683e2256de94f642a`  
 
 ---
 
@@ -31,13 +31,13 @@ The Flutter unit and integration test suite (including the new regression test s
 * **Dart Version:** `3.10.0`
 * **DevTools Version:** `2.51.1`
 * **Test Outcome:**
-  * **Passed:** `91`
+  * **Passed:** `96`
   * **Failed:** `0`
   * **Skipped:** `0`
-  * **Total Test Suites Executed:** `24` test files
+  * **Total Test Suites Executed:** `25` test files
 
 ```
-00:09 +91: All tests passed!
+00:10 +96: All tests passed!
 ```
 
 ### B. Summary of Targeted Code Modifications & Verified Fixes
@@ -52,10 +52,10 @@ The Flutter unit and integration test suite (including the new regression test s
    * **Fix Implemented:** Updated `geoJsonCoordinate()` to write WGS 84 ellipsoidal height $h$ as the 3rd geometry coordinate (conforming to RFC 7946). Baltic orthometric height $H$ is retained in feature properties under `Baltic_Height`. If a valid height is unavailable, the 3rd coordinate is omitted, producing a 2D `[lon, lat]` array.
    * **Verified By Test:** `Export and Persistence Regression Tests 2. GeoJSON 3D height semantics (Ellipsoidal vs Baltic Orthometric)` passed.
 
-3. **Project Save Serialization Implemented (`lib/services/project_service.dart`):**
+3. **Project Save Serialization & Unique Temp Paths Implemented (`lib/services/project_service.dart`):**
    * **Previous Behavior:** Unawaited asynchronous calls to `_saveProjectsToDisk()` ran concurrently without locking, causing `PathNotFoundException` file-rename collisions on `.tmp` files during rapid edits.
-   * **Fix Implemented:** Wrapped `_saveProjectsToDisk()` in a `Completer` chain lock queue (`_saveQueue`) to execute save operations sequentially. Updated `_performSaveToDisk()` to preserve replacement data in `.tmp` before renaming/copying over `saved_projects.json`, with atomic fallback handling.
-   * **Verified By Test:** `Export and Persistence Regression Tests 3. Rapid consecutive edits execute without race conditions or PathNotFoundException` passed (50 rapid sequential edits executed without file lock exceptions).
+   * **Fix Implemented:** Wrapped `_saveProjectsToDisk()` in a `Completer` chain lock queue (`_saveQueue`) and updated `_performSaveToDisk()` to write to process-unique temporary paths (`saved_projects_${microseconds}.tmp`). Added `flushPendingSaves()` and `lastSaveError` to enable explicit error detection in tests.
+   * **Verified By Test:** `Export and Persistence Regression Tests 3. Rapid consecutive edits execute without race conditions or PathNotFoundException` passed (50 rapid sequential edits executed without file lock exceptions and verified via fresh `ProjectService` reload from disk).
 
 ---
 
