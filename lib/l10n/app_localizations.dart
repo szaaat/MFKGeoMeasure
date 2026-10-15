@@ -2282,10 +2282,34 @@ abstract class AppLocalizations {
   /// **'Please import a control point SHP into the project.'**
   String get importShpTooltip;
 
+  /// No description provided for @locationDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location & Background Tracking'**
   String get locationDisclosureTitle;
+
+  /// No description provided for @locationDisclosureHighlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Prominent Disclosure on Location Usage'**
   String get locationDisclosureHighlight;
+
+  /// No description provided for @locationDisclosureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'MFK GeoMeasure collects location data to enable field surveying, continuous survey track recording, and GNSS/RTK positioning even when the app is closed or not in use.\n\nYour location data is processed locally on your device to calculate coordinates in the Hungarian EOV system (EPSG:23700) and Baltic orthometric heights. Data is never sold or shared with third parties.'**
   String get locationDisclosureBody;
+
+  /// No description provided for @locationDisclosureAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree & Continue'**
   String get locationDisclosureAccept;
+
+  /// No description provided for @locationDisclosureDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'No Thanks (Foreground Only)'**
   String get locationDisclosureDecline;
 }
 

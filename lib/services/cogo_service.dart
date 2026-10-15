@@ -45,7 +45,7 @@ class CogoService {
     
     double dist = sqrt(dyGeo * dyGeo + dxGeo * dxGeo);
     double angle = atan2(dyGeo, dxGeo) * 180 / pi;
-    double wcb = (90 - angle + 360) % 360;
+    double wcb = (angle + 360) % 360;
 
     return CogoCalculationReport(
       title: "Inverz feladat",
@@ -58,7 +58,7 @@ class CogoService {
         "ΔX = X₂ - X₁ = ${dxGeo.toStringAsFixed(3)} m",
         "d = √(ΔY² + ΔX²) = ${dist.toStringAsFixed(3)} m",
         "α = atan2(ΔY, ΔX) = ${angle.toStringAsFixed(4)}°",
-        "WCB = (90 - α) mod 360 = ${wcb.toStringAsFixed(4)}°",
+        "WCB = (α + 360) mod 360 = ${wcb.toStringAsFixed(4)}°",
       ],
     );
   }
