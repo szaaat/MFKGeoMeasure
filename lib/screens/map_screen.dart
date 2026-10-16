@@ -444,19 +444,34 @@ class _MapScreenState extends State<MapScreen> {
 
   void _showSearchDialog() {
     final searchController = TextEditingController();
+    final altitudeController = TextEditingController();
     final projectService = context.read<ProjectService>();
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.searchCoord),
-        content: TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            hintText: 'Pl: 47.902, 20.373 vagy 723000, 283000',
-            labelText: 'WGS84 (Lat, Lon) vagy EOV (Y, X)',
-          ),
-          keyboardType: TextInputType.text,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: searchController,
+              decoration: const InputDecoration(
+                hintText: 'Pl: 47.902, 20.373 vagy 723000, 283000',
+                labelText: 'WGS84 (Lat, Lon) vagy EOV (Y, X)',
+              ),
+              keyboardType: TextInputType.text,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: altitudeController,
+              decoration: const InputDecoration(
+                hintText: 'Magasság (opcionális)',
+                labelText: 'Magasság (m)',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -496,8 +511,16 @@ class _MapScreenState extends State<MapScreen> {
 
                   LatLng newPoint = LatLng(lat, lon);
 
+                  // Extract altitude from text field or 3rd coordinate part
+                  double altitude = 0.0;
+                  if (altitudeController.text.isNotEmpty) {
+                    altitude = double.tryParse(altitudeController.text.replaceAll(',', '.')) ?? 0.0;
+                  } else if (parts.length >= 3) {
+                    altitude = double.tryParse(parts[2]) ?? 0.0;
+                  }
+
                   projectService.setTool(FeatureType.point);
-                  projectService.addPointToGeometry(newPoint, 0.0);
+                  projectService.addPointToGeometry(newPoint, altitude, isEllipsoidal: false); // Mivel kézi bevitel, alapvetően a beírt adat formátumának megfelelően viselkedik, de isEllipsoidal: false jobb alapértéknek.
                   final saved = projectService.finishRecording(
                       "${l10n.searched}: ${lat.toStringAsFixed(4)}, ${lon.toStringAsFixed(4)}",
                       l10n.recordedFromSearch);
