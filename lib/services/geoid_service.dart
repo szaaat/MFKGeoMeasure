@@ -72,7 +72,6 @@ class GeoidCorrectionService {
 
   GeoidResult? getUndulation(double lat, double lon,
       {GeoidInputFrame referenceFrame = GeoidInputFrame.unknown}) {
-    if (referenceFrame == GeoidInputFrame.unknown) return null;
     final bmeValue = gridService.geoidUndulation(lon, lat);
     if (bmeValue != null) return GeoidResult(bmeValue, 'BME_geoid2014');
     

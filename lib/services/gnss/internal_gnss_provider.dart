@@ -6,6 +6,7 @@ import 'package:raw_gnss/raw_gnss.dart';
 import 'package:mfk_geomeasure/models/gnss_fix.dart';
 import 'package:mfk_geomeasure/models/gnss_raw_measurement.dart';
 import 'package:mfk_geomeasure/services/gnss/gnss_provider.dart';
+import 'package:meta/meta.dart';
 import '../geoid_service.dart';
 
 class InternalGnssProvider implements GnssProvider {
@@ -63,7 +64,7 @@ class InternalGnssProvider implements GnssProvider {
           .receiveBroadcastStream()
           .listen((dynamic event) {
         if (event is Map) {
-          _fixController.add(_mapNativeIOSLocationToGnssFix(event));
+          _fixController.add(mapNativeIOSLocationToGnssFix(event));
         }
       });
     } else {
@@ -126,10 +127,11 @@ class InternalGnssProvider implements GnssProvider {
     _rawByteController.close();
   }
 
-  GnssFix _mapNativeIOSLocationToGnssFix(Map<dynamic, dynamic> data) {
+  @visibleForTesting
+  GnssFix mapNativeIOSLocationToGnssFix(Map<dynamic, dynamic> data) {
     final double latitude = data['latitude'] as double;
     final double longitude = data['longitude'] as double;
-    final double altitude = data['altitude'] as double; // iOS MSL
+    double altitude = data['altitude'] as double; // Default to iOS MSL
     final double? ellipsoidalAltitude = data['ellipsoidalAltitude'] as double?;
     final double hAccuracy = data['horizontalAccuracy'] as double;
     final double vAccuracy = data['verticalAccuracy'] as double;
@@ -137,45 +139,56 @@ class InternalGnssProvider implements GnssProvider {
     final DateTime timestamp =
         DateTime.fromMillisecondsSinceEpoch(timestampMs.round());
 
-    double ellipsoidalHeight;
+    double ellipsoidalHeight = double.nan;
     double? mslAltitude;
     double? geoidSeparation;
-    bool isEllipsoidal;
+    bool isEllipsoidal = false;
 
-    if (ellipsoidalAltitude != null) {
-      // iOS 15+ has ellipsoidal altitude
-      isEllipsoidal = true;
-      ellipsoidalHeight = ellipsoidalAltitude;
-      // Recompute BME undulation if possible
-      if (_geoidService != null) {
-        final geoidResult = _geoidService!.getUndulation(
-          latitude,
-          longitude,
-          referenceFrame: GeoidInputFrame.assumed,
-        );
-        if (geoidResult != null) {
-          geoidSeparation = geoidResult.value;
-          mslAltitude = ellipsoidalHeight - geoidSeparation;
+    // Check if height is valid
+    if (vAccuracy <= 0) {
+      altitude = double.nan;
+      ellipsoidalHeight = double.nan;
+      mslAltitude = null;
+      isEllipsoidal = false;
+    } else {
+      if (ellipsoidalAltitude != null) {
+        // iOS 15+ has ellipsoidal altitude
+        isEllipsoidal = true;
+        altitude = ellipsoidalAltitude; // Ensure GnssFix.altitude matches isEllipsoidal
+        ellipsoidalHeight = ellipsoidalAltitude;
+
+        // Recompute BME undulation if possible
+        if (_geoidService != null) {
+          final geoidResult = _geoidService!.getUndulation(
+            latitude,
+            longitude,
+            referenceFrame: GeoidInputFrame.assumed,
+          );
+          if (geoidResult != null) {
+            geoidSeparation = geoidResult.value;
+            mslAltitude = ellipsoidalHeight - geoidSeparation;
+          } else {
+            // If outside BME, rely on iOS's orthometric height
+            mslAltitude = data['altitude'] as double;
+            geoidSeparation = ellipsoidalHeight - mslAltitude;
+          }
         } else {
-          // If outside BME, rely on iOS's orthometric height
-          mslAltitude = altitude;
+          mslAltitude = data['altitude'] as double;
           geoidSeparation = ellipsoidalHeight - mslAltitude;
         }
       } else {
+        // Prior to iOS 15 or not available, we only have orthometric MSL altitude
+        isEllipsoidal = false;
+        altitude = data['altitude'] as double; // Ensure GnssFix.altitude is MSL
         mslAltitude = altitude;
-        geoidSeparation = ellipsoidalHeight - mslAltitude;
+        ellipsoidalHeight = double.nan; // We explicitly don't have ellipsoidal height
       }
-    } else {
-      // Prior to iOS 15 or not available, we only have orthometric MSL altitude
-      isEllipsoidal = false;
-      mslAltitude = altitude;
-      ellipsoidalHeight = altitude; // We don't have it, put dummy value
     }
 
     return GnssFix(
       latitude: latitude,
       longitude: longitude,
-      altitude: altitude, // The raw field is altitude (MSL on iOS)
+      altitude: altitude, // Matches isEllipsoidal meaning
       ellipsoidalHeight: ellipsoidalHeight,
       isEllipsoidal: isEllipsoidal,
       mslAltitude: mslAltitude,
@@ -192,34 +205,43 @@ class InternalGnssProvider implements GnssProvider {
   }
 
   GnssFix _mapPositionToGnssFix(Position pos) {
-    double ellipsoidalHeight = pos.altitude;
+    double altitude = pos.altitude;
+    double ellipsoidalHeight = double.nan;
     double? mslAltitude;
     double? geoidSeparation;
-    bool isEllipsoidal = true;
+    bool isEllipsoidal = true; // Assuming Android geolocator always returns WGS84 ellipsoidal height
 
-    if (_geoidService != null) {
-      final geoidResult = _geoidService!.getUndulation(
-        pos.latitude,
-        pos.longitude,
-        referenceFrame: GeoidInputFrame.assumed,
-      );
-      if (geoidResult != null) {
-        geoidSeparation = geoidResult.value;
-        mslAltitude = ellipsoidalHeight - geoidSeparation;
+    if (pos.altitudeAccuracy <= 0) {
+      altitude = double.nan;
+      ellipsoidalHeight = double.nan;
+      mslAltitude = null;
+      isEllipsoidal = false;
+    } else {
+      ellipsoidalHeight = altitude;
+      if (_geoidService != null) {
+        final geoidResult = _geoidService!.getUndulation(
+          pos.latitude,
+          pos.longitude,
+          referenceFrame: GeoidInputFrame.assumed,
+        );
+        if (geoidResult != null) {
+          geoidSeparation = geoidResult.value;
+          mslAltitude = ellipsoidalHeight - geoidSeparation;
+        }
       }
     }
 
     return GnssFix(
       latitude: pos.latitude,
       longitude: pos.longitude,
-      altitude: pos.altitude,
+      altitude: altitude,
       ellipsoidalHeight: ellipsoidalHeight,
       isEllipsoidal: isEllipsoidal,
       mslAltitude: mslAltitude,
       geoidSeparation: geoidSeparation,
       horizontalAccuracy: pos.accuracy,
       verticalAccuracy: pos.altitudeAccuracy,
-      fixType: pos.accuracy < 10 ? GnssFixType.autonomous : GnssFixType.none,
+      fixType: pos.accuracy < 10 && pos.accuracy > 0 ? GnssFixType.autonomous : GnssFixType.none,
       satellitesUsed: 0,
       source: GnssSource.internal,
       receiverName: "Internal GPS",

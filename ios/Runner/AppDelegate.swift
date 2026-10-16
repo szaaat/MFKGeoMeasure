@@ -11,9 +11,10 @@ import CoreLocation
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    let controller = window?.rootViewController as! FlutterViewController
-    let eventChannel = FlutterEventChannel(name: "hu.uni.miskolc.mfkGeomeasure/native_location", binaryMessenger: controller.binaryMessenger)
-    eventChannel.setStreamHandler(self)
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let eventChannel = FlutterEventChannel(name: "hu.uni.miskolc.mfkGeomeasure/native_location", binaryMessenger: controller.binaryMessenger)
+      eventChannel.setStreamHandler(self)
+    }
 
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

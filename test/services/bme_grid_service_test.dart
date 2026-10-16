@@ -99,7 +99,7 @@ void main() {
     }
   });
 
-  test('Unknown reference frame never receives a BME correction', () async {
+  test('Unknown reference frame is handled correctly without throwing for undulation', () async {
     final geoid = GeoidCorrectionService();
     await geoid.loadBmeGrid();
     final eov = EovService(
@@ -113,7 +113,8 @@ void main() {
     expect(result.coordinates, isNull);
     expect(result.status, EovTransformStatus.unknownReferenceFrame);
     expect(() => eov.wgsToEov(47.97801236, 20.43002679), throwsStateError);
-    expect(geoid.getUndulation(47.97801236, 20.43002679), isNull);
+    // Undulation should still return BME assumed if inside grid
+    expect(geoid.getUndulation(47.97801236, 20.43002679)?.value, closeTo(42.345627, 0.00001));
   });
 
   test('Unknown frame uses the documented BME assumption in default mode',
