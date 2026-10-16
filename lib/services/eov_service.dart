@@ -119,29 +119,51 @@ class EovService {
     return result.coordinates!;
   }
 
-  List<double> eovToWgs(double eovY, double eovX) {
-    final useBme = mode == EovTransformMode.bmeEtrf2000 ||
-        mode == EovTransformMode.bmeAssumed;
-    if (mode == EovTransformMode.unknown) {
-      throw StateError(
-          'No EOV inverse transformation is configured for an unknown reference frame');
+  EovTransformResult transformEovToWgs(double eovY, double eovX,
+      {EovTransformMode? requestedMode}) {
+    final selected = requestedMode ?? mode;
+    if (selected == EovTransformMode.unknown) {
+      return const EovTransformResult(
+        coordinates: null,
+        mode: EovTransformMode.unknown,
+        status: EovTransformStatus.unknownReferenceFrame,
+      );
     }
-    if (requireBme && !useBme) {
-      throw StateError(
-          'BME EOV transformation requires an explicitly identified ETRF2000 input frame');
+    if (selected == EovTransformMode.legacy) {
+      final res = _eov.transform(_wgs84, Point(x: eovY, y: eovX));
+      return EovTransformResult(
+        coordinates: [res.y, res.x],
+        mode: selected,
+        status: EovTransformStatus.legacy,
+      );
     }
-    Point p = Point(x: eovY, y: eovX);
     final hdProjection = Projection.get('MFK_HD72_EOV')!;
-    final hd = hdProjection.transform(_wgs84, p);
-    if (!useBme) {
-      final res = _eov.transform(_wgs84, p);
-      return [res.y, res.x];
-    }
+    final hd = hdProjection.transform(_wgs84, Point(x: eovY, y: eovX));
     final etrf = gridService.hdToEtrf(hd.x, hd.y);
     if (etrf == null) {
-      throw StateError(
-          'BME horizontal grid is not loaded or point is outside it');
+      return EovTransformResult(
+        coordinates: null,
+        mode: selected,
+        status: EovTransformStatus.outsideGrid,
+      );
     }
-    return [etrf[1], etrf[0]];
+    return EovTransformResult(
+      coordinates: [etrf[1], etrf[0]],
+      mode: selected,
+      status: selected == EovTransformMode.bmeAssumed
+          ? EovTransformStatus.bmeGridAssumedFrame
+          : EovTransformStatus.bmeGrid,
+    );
+  }
+
+  List<double> eovToWgs(double eovY, double eovX) {
+    final result = transformEovToWgs(eovY, eovX);
+    if (result.coordinates == null ||
+        (requireBme && result.mode != EovTransformMode.bmeEtrf2000)) {
+      throw StateError(result.status == EovTransformStatus.unknownReferenceFrame
+          ? 'No verified EOV transformation is available for an unknown reference frame'
+          : 'BME EOV transformation requires an explicitly identified ETRF2000 input frame or is outside grid');
+    }
+    return result.coordinates!;
   }
 }

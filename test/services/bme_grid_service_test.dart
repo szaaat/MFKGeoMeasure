@@ -25,7 +25,7 @@ void main() {
       20.43002679,
       referenceFrame: GeoidInputFrame.etrf2000,
     );
-    expect(undulation, closeTo(42.345627, 0.00001));
+    expect(undulation?.value, closeTo(42.345627, 0.00001));
     expect(
       geoid.getOrthoHeight(
         47.97801236,
@@ -33,7 +33,7 @@ void main() {
         233.625,
         isEllipsoidal: true,
         referenceFrame: GeoidInputFrame.etrf2000,
-      ),
+      )?.value,
       closeTo(191.279373063, 0.00001),
     );
   });
@@ -59,7 +59,7 @@ void main() {
       isEllipsoidal: true,
       referenceFrame: GeoidInputFrame.assumed,
     );
-    expect(height, closeTo(191.279373063, 0.00001));
+    expect(height?.value, closeTo(191.279373063, 0.00001));
   });
 
   test('Orthometric source height is never corrected a second time', () async {
@@ -73,7 +73,7 @@ void main() {
         isEllipsoidal: false,
         referenceFrame: GeoidInputFrame.assumed,
       ),
-      closeTo(191.279373063, 0.000001),
+      isNull,
     );
   });
 

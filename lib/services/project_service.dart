@@ -522,10 +522,10 @@ class ProjectService extends ChangeNotifier {
             eov[0].toStringAsFixed(2), // EOV_Y (Easting)
             eov[1].toStringAsFixed(2), // EOV_X (Northing)
             gpsAltitude.toString(),
-            orthoH?.toStringAsFixed(3) ?? '',
+            orthoH?.value.toStringAsFixed(3) ?? '',
             isEllipsoidal ? 'ellipsoidal' : 'orthometric_source',
             f.properties['referenceFrame'] ?? 'unknown',
-            isEllipsoidal && orthoH != null ? 'hu_bme_geoid2014' : '',
+            isEllipsoidal && orthoH != null ? orthoH.gridName : '',
             stats['Survey Method'] ?? 'IMPORTED',
             stats['GNSS Source'] ?? 'N/A',
             stats['RTK Status'] ?? 'N/A',
@@ -610,7 +610,7 @@ class ProjectService extends ChangeNotifier {
               referenceFrame: frame,
             );
             if (undulation != null) {
-              ellipsoidalH = gpsH + undulation;
+              ellipsoidalH = gpsH + undulation.value;
             }
           }
           return [
@@ -651,7 +651,7 @@ class ProjectService extends ChangeNotifier {
           extraProperties['Height_Reference_Frame'] =
               f.properties['referenceFrame'] ?? 'unknown';
           extraProperties['Geoid_Model'] =
-              isEllipsoidal && orthoH != null ? 'hu_bme_geoid2014' : null;
+              isEllipsoidal && orthoH != null ? orthoH.gridName : null;
           extraProperties['EOV_Transform'] =
               f.properties['eovTransform'] ?? 'bmeGridAssumedFrame';
           if (isEllipsoidal) {
@@ -665,12 +665,12 @@ class ProjectService extends ChangeNotifier {
             );
             if (undulation != null) {
               extraProperties['Ellipsoidal_Height'] =
-                  double.parse((gpsH + undulation).toStringAsFixed(3));
+                  double.parse((gpsH + undulation.value).toStringAsFixed(3));
             }
           }
           if (orthoH != null) {
             extraProperties['Baltic_Height'] =
-                double.parse(orthoH.toStringAsFixed(3));
+                double.parse(orthoH.value.toStringAsFixed(3));
           }
           coordinates = geoJsonCoordinate(p.latitude, p.longitude, gpsH,
               isEllipsoidal: isEllipsoidal);
@@ -1162,7 +1162,7 @@ class ProjectService extends ChangeNotifier {
           );
           if (orthoH != null) {
             feature.calculatedStats['Balti magasság'] =
-                double.parse(orthoH.toStringAsFixed(3));
+                double.parse(orthoH.value.toStringAsFixed(3));
           }
         }
       } else {
@@ -1176,7 +1176,7 @@ class ProjectService extends ChangeNotifier {
           );
           if (undulation != null) {
             feature.calculatedStats['Ellipszoidi magasság'] =
-                double.parse((gpsAlt + undulation).toStringAsFixed(3));
+                double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
           } else {
             feature.calculatedStats['Ellipszoidi magasság'] =
                 double.parse(gpsAlt.toStringAsFixed(3));
@@ -1525,7 +1525,8 @@ class ProjectService extends ChangeNotifier {
             referenceFrame: geoidFrame,
           );
           if (orthoH != null) {
-            stats['Balti magasság'] = double.parse(orthoH.toStringAsFixed(3));
+            stats['Balti magasság'] = double.parse(orthoH.value.toStringAsFixed(3));
+            stats['Használt geoid rács'] = orthoH.gridName;
           }
         }
       } else {
@@ -1538,7 +1539,7 @@ class ProjectService extends ChangeNotifier {
           );
           if (undulation != null) {
             stats['Ellipszoidi magasság'] =
-                double.parse((gpsAlt + undulation).toStringAsFixed(3));
+                double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
           }
         }
       }

@@ -117,31 +117,15 @@ class InternalGnssProvider implements GnssProvider {
     double? geoidSeparation;
     bool isEllipsoidal = true;
 
-    if (Platform.isIOS) {
-      isEllipsoidal = false;
-      mslAltitude = pos.altitude;
-      if (_geoidService != null) {
-        geoidSeparation = _geoidService!.getUndulation(
-          pos.latitude,
-          pos.longitude,
-          referenceFrame: GeoidInputFrame.assumed,
-        );
-        if (geoidSeparation != null) {
-          ellipsoidalHeight = mslAltitude + geoidSeparation;
-        }
-      }
-    } else {
-      isEllipsoidal = true;
-      ellipsoidalHeight = pos.altitude;
-      if (_geoidService != null) {
-        geoidSeparation = _geoidService!.getUndulation(
-          pos.latitude,
-          pos.longitude,
-          referenceFrame: GeoidInputFrame.assumed,
-        );
-        if (geoidSeparation != null) {
-          mslAltitude = ellipsoidalHeight - geoidSeparation;
-        }
+    if (_geoidService != null) {
+      final geoidResult = _geoidService!.getUndulation(
+        pos.latitude,
+        pos.longitude,
+        referenceFrame: GeoidInputFrame.assumed,
+      );
+      if (geoidResult != null) {
+        geoidSeparation = geoidResult.value;
+        mslAltitude = ellipsoidalHeight - geoidSeparation;
       }
     }
 

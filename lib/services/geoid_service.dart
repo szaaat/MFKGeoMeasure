@@ -28,6 +28,12 @@ class _GeoidGrid {
   double valueAt(int x, int y) => values[y * width + x];
 }
 
+class GeoidResult {
+  final double value;
+  final String gridName;
+  GeoidResult(this.value, this.gridName);
+}
+
 class GeoidCorrectionService {
   final BmeGridService gridService;
   _GeoidGrid? _grid;
@@ -64,11 +70,12 @@ class GeoidCorrectionService {
     }
   }
 
-  double? getUndulation(double lat, double lon,
+  GeoidResult? getUndulation(double lat, double lon,
       {GeoidInputFrame referenceFrame = GeoidInputFrame.unknown}) {
     if (referenceFrame == GeoidInputFrame.unknown) return null;
     final bmeValue = gridService.geoidUndulation(lon, lat);
-    if (gridService.isLoaded) return bmeValue;
+    if (bmeValue != null) return GeoidResult(bmeValue, 'BME_geoid2014');
+    
     final grid = _grid;
     if (grid == null || !lat.isFinite || !lon.isFinite) return null;
     final x = (lon - grid.originLon) / grid.pixelWidth;
@@ -94,15 +101,16 @@ class GeoidCorrectionService {
     }
     final top = samples[0] + (samples[1] - samples[0]) * tx;
     final bottom = samples[2] + (samples[3] - samples[2]) * tx;
-    return top + (bottom - top) * ty;
+    return GeoidResult(top + (bottom - top) * ty, 'GeoTIFF_EHT2014');
   }
 
-  double? getOrthoHeight(double lat, double lon, double gpsAlt,
+  GeoidResult? getOrthoHeight(double lat, double lon, double gpsAlt,
       {required bool isEllipsoidal,
       GeoidInputFrame referenceFrame = GeoidInputFrame.unknown}) {
-    if (!isEllipsoidal) return gpsAlt;
-    final undulation = getUndulation(lat, lon, referenceFrame: referenceFrame);
-    return undulation == null ? null : gpsAlt - undulation;
+    if (!isEllipsoidal) return null; // We don't apply correction if already orthometric
+    final result = getUndulation(lat, lon, referenceFrame: referenceFrame);
+    if (result == null) return null;
+    return GeoidResult(gpsAlt - result.value, result.gridName);
   }
 }
 

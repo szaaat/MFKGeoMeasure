@@ -3132,7 +3132,7 @@ class _MapScreenState extends State<MapScreen> {
           )
         : null;
     final eov = liveEov?.coordinates ?? [0.0, 0.0];
-    final orthoHeight = _currentLocation != null
+    final orthoHeightResult = _currentLocation != null
         ? geoidService.getOrthoHeight(
             _currentLocation!.latitude,
             _currentLocation!.longitude,
@@ -3141,6 +3141,7 @@ class _MapScreenState extends State<MapScreen> {
             referenceFrame: GeoidInputFrame.assumed,
           )
         : null;
+    final orthoHeight = orthoHeightResult?.value;
 
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
