@@ -24,7 +24,7 @@ void main() {
       expect(fix.altitude, 105.0); // Raw MSL altitude
       expect(fix.mslAltitude, 105.0);
       expect(fix.isEllipsoidal, isFalse);
-      expect(fix.ellipsoidalHeight.isNaN, isTrue); // No ellipsoidal height provided
+      expect(fix.ellipsoidalHeight?.isNaN ?? true, isTrue); // No ellipsoidal height provided
     });
 
     test('Maps iOS 15+ ellipsoidal data correctly (verticalAccuracy > 0)', () {
@@ -66,7 +66,7 @@ void main() {
       final fix = (provider as dynamic).mapNativeIOSLocationToGnssFix(data) as GnssFix;
 
       expect(fix.altitude.isNaN, isTrue);
-      expect(fix.ellipsoidalHeight.isNaN, isTrue);
+      expect(fix.ellipsoidalHeight?.isNaN ?? true, isTrue);
       expect(fix.mslAltitude, isNull);
       expect(fix.isEllipsoidal, isFalse);
     });

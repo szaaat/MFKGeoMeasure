@@ -239,6 +239,7 @@ class ShpExportService {
     if (isPoint) {
       dbfFields.add(_DbfField("EOV_Y", "N", 15, decimal: 2));
       dbfFields.add(_DbfField("EOV_X", "N", 15, decimal: 2));
+      dbfFields.add(_DbfField("SRC_H", "N", 15, decimal: 3));
       dbfFields.add(_DbfField("ELL_H", "N", 15, decimal: 3));
       dbfFields.add(_DbfField("BALT_H", "N", 15, decimal: 3));
     }
@@ -329,7 +330,7 @@ class ShpExportService {
       if (isPoint) {
         if (feature.type == FeatureType.point && feature.geometry.isNotEmpty) {
           final p = feature.geometry.first;
-          final double gpsAlt = feature.altitudes.isNotEmpty ? feature.altitudes.first : 0.0;
+          final double gpsAlt = feature.altitudes.isNotEmpty ? feature.altitudes.first : double.nan;
           
           if (eovService != null) {
             final eov = eovService.wgsToEov(p.latitude, p.longitude);
@@ -340,12 +341,16 @@ class ShpExportService {
             _addDbfValue(builder, null, dbfFields[fieldIdx++]);
           }
           
-          _addDbfValue(builder, gpsAlt, dbfFields[fieldIdx++]); // ELL_H
+          _addDbfValue(builder, gpsAlt.isFinite ? gpsAlt : null, dbfFields[fieldIdx++]); // SRC_H
+          
+          double? ellH = feature.calculatedStats['Ellipszoidi magasság'] ?? feature.calculatedStats['Ellipszoidi magasság (számított)'];
+          _addDbfValue(builder, ellH, dbfFields[fieldIdx++]); // ELL_H
           
           // Balti magasság számítása, ha nincs kész érték a statisztikákban
-          double? orthoH = feature.calculatedStats['Balti magasság'];
+          double? orthoH = feature.calculatedStats['Balti magasság'] ?? feature.calculatedStats['Tengerszint feletti magasság (forrás)'];
           _addDbfValue(builder, orthoH, dbfFields[fieldIdx++]); // BALT_H
         } else {
+          _addDbfValue(builder, null, dbfFields[fieldIdx++]);
           _addDbfValue(builder, null, dbfFields[fieldIdx++]);
           _addDbfValue(builder, null, dbfFields[fieldIdx++]);
           _addDbfValue(builder, null, dbfFields[fieldIdx++]);

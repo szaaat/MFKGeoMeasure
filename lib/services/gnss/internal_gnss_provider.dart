@@ -6,7 +6,7 @@ import 'package:raw_gnss/raw_gnss.dart';
 import 'package:mfk_geomeasure/models/gnss_fix.dart';
 import 'package:mfk_geomeasure/models/gnss_raw_measurement.dart';
 import 'package:mfk_geomeasure/services/gnss/gnss_provider.dart';
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 import '../geoid_service.dart';
 
 class InternalGnssProvider implements GnssProvider {

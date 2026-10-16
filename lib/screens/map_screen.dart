@@ -22,6 +22,7 @@ import 'camera_screen.dart';
 import '../services/geoid_service.dart';
 import '../services/eov_service.dart';
 import '../services/project_service.dart';
+import '../widgets/search_dialog.dart';
 import '../services/data_validation_service.dart';
 import '../widgets/location_disclosure_dialog.dart';
 import '../services/gnss_info_service.dart';
@@ -316,7 +317,7 @@ class _MapScreenState extends State<MapScreen> {
       final fix = gnssService.lastFix!;
       setState(() {
         _currentLocation = LatLng(fix.latitude, fix.longitude);
-        _gpsAltitude = fix.ellipsoidalHeight;
+        _gpsAltitude = fix.altitude;
         _currentAccuracy = fix.horizontalAccuracy;
       });
       _safeMove(_currentLocation!, 15.0);
@@ -337,7 +338,7 @@ class _MapScreenState extends State<MapScreen> {
 
       setState(() {
         _currentLocation = filteredLocation;
-        _gpsAltitude = fix.ellipsoidalHeight;
+        _gpsAltitude = fix.altitude;
         _currentAccuracy = fix.horizontalAccuracy;
         if (isM21HeadingValid) {
           _deviceHeading = fix.heading!;
@@ -443,115 +444,13 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showSearchDialog() {
-    final searchController = TextEditingController();
-    final altitudeController = TextEditingController();
-    final projectService = context.read<ProjectService>();
-
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.searchCoord),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: searchController,
-              decoration: const InputDecoration(
-                hintText: 'Pl: 47.902, 20.373 vagy 723000, 283000',
-                labelText: 'WGS84 (Lat, Lon) vagy EOV (Y, X)',
-              ),
-              keyboardType: TextInputType.text,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: altitudeController,
-              decoration: const InputDecoration(
-                hintText: 'Magasság (opcionális)',
-                labelText: 'Magasság (m)',
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              String cleanInput = searchController.text
-                  .replaceAll(', ', ' ')
-                  .replaceAll(',', '.')
-                  .replaceAll(';', ' ');
-
-              final parts = cleanInput
-                  .split(RegExp(r'\s+'))
-                  .where((s) => s.isNotEmpty)
-                  .toList();
-
-              if (parts.length >= 2) {
-                double? val1 = double.tryParse(parts[0]);
-                double? val2 = double.tryParse(parts[1]);
-
-                if (val1 != null && val2 != null) {
-                  double lat, lon;
-
-                  if (val1 > 10000 && val2 > 10000) {
-                    double eovY = val1 > val2 ? val1 : val2;
-                    double eovX = val1 < val2 ? val1 : val2;
-
-                    final wgs = context.read<EovService>().eovToWgs(eovY, eovX);
-                    lat = wgs[0];
-                    lon = wgs[1];
-                  } else {
-                    lat = val1;
-                    lon = val2;
-                  }
-
-                  LatLng newPoint = LatLng(lat, lon);
-
-                  // Extract altitude from text field or 3rd coordinate part
-                  double altitude = 0.0;
-                  if (altitudeController.text.isNotEmpty) {
-                    altitude = double.tryParse(altitudeController.text.replaceAll(',', '.')) ?? 0.0;
-                  } else if (parts.length >= 3) {
-                    altitude = double.tryParse(parts[2]) ?? 0.0;
-                  }
-
-                  projectService.setTool(FeatureType.point);
-                  projectService.addPointToGeometry(newPoint, altitude, isEllipsoidal: false); // Mivel kézi bevitel, alapvetően a beírt adat formátumának megfelelően viselkedik, de isEllipsoidal: false jobb alapértéknek.
-                  final saved = projectService.finishRecording(
-                      "${l10n.searched}: ${lat.toStringAsFixed(4)}, ${lon.toStringAsFixed(4)}",
-                      l10n.recordedFromSearch);
-                  if (!saved) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'Az objektum adatellenőrzés miatt nem menthető.')),
-                    );
-                    return;
-                  }
-
-                  _safeMove(newPoint, 17.0);
-                  setState(() => _isTracking = false);
-                  Navigator.pop(ctx);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(l10n.pointSaved),
-                        backgroundColor: Colors.green),
-                  );
-                  return;
-                }
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.invalidCoord)),
-              );
-            },
-            child: Text(l10n.searchAndSave),
-          ),
-        ],
+      builder: (ctx) => SearchDialog(
+        onLocationFound: (point, zoom) {
+          _safeMove(point, zoom);
+          setState(() => _isTracking = false);
+        },
       ),
     );
   }
@@ -804,7 +703,7 @@ class _MapScreenState extends State<MapScreen> {
       projectService.addPointToGeometry(
         _currentLocation!,
         _gpsAltitude,
-        isEllipsoidal: true,
+        isEllipsoidal: gnssService.lastFix?.isEllipsoidal ?? true,
         fix: gnssService.lastFix,
       );
     }
@@ -827,7 +726,7 @@ class _MapScreenState extends State<MapScreen> {
                 service.addPointToGeometry(
                   _currentLocation!,
                   _gpsAltitude,
-                  isEllipsoidal: true,
+                  isEllipsoidal: gnssService.lastFix?.isEllipsoidal ?? true,
                   fix: gnssService.lastFix,
                 );
                 _showSaveDialog(service);
@@ -3160,7 +3059,7 @@ class _MapScreenState extends State<MapScreen> {
             _currentLocation!.latitude,
             _currentLocation!.longitude,
             _gpsAltitude,
-            isEllipsoidal: true,
+            isEllipsoidal: gnssService.lastFix?.isEllipsoidal ?? true,
             referenceFrame: GeoidInputFrame.assumed,
           )
         : null;

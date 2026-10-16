@@ -41,8 +41,8 @@ class GnssFix {
   /// A forrásból érkező "nyers" magasság.
   final double altitude;
   
-  /// Kiszámított vagy megadott ellipszoidi magasság.
-  final double ellipsoidalHeight;
+  /// Kiszámított vagy megadott ellipszoidi magasság. Érvénytelen vagy ismeretlen esetén null.
+  final double? ellipsoidalHeight;
 
   /// Igaz, ha az [altitude] mező már ellipszoidi magasságot tartalmaz.
   final bool isEllipsoidal;
@@ -87,7 +87,7 @@ class GnssFix {
     required this.latitude,
     required this.longitude,
     required this.altitude,
-    required this.ellipsoidalHeight,
+    this.ellipsoidalHeight,
     required this.isEllipsoidal,
     this.mslAltitude,
     this.geoidSeparation,

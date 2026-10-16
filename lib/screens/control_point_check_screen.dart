@@ -184,7 +184,7 @@ class _ControlPointCheckScreenState extends State<ControlPointCheckScreen> {
     final en=eov.wgsToEov(fix.latitude,fix.longitude);final nav=gnss.mfkRtkNavData;
     return Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Text(l10n.currentMfkRtkPosition,style:const TextStyle(fontWeight:FontWeight.bold)),
-      Text('E ${en[0].toStringAsFixed(3)} m · N ${en[1].toStringAsFixed(3)} m · ellipsoidal h ${fix.ellipsoidalHeight.toStringAsFixed(3)} m'),
+      Text('E ${en[0].toStringAsFixed(3)} m · N ${en[1].toStringAsFixed(3)} m · ellipsoidal h ${fix.ellipsoidalHeight?.toStringAsFixed(3)} m'),
       Text('RTK ${fix.rtkStatus.name.toUpperCase()} · M21 ${nav?.posType??fix.positionSource??'—'} · INS ${fix.insStatus??'—'} · sats ${fix.satellitesUsed}'),
       Text('M21 reported accuracy ±${fix.horizontalAccuracy.toStringAsFixed(3)} m · heading ${fix.heading?.toStringAsFixed(1)??'—'} · roll ${fix.roll?.toStringAsFixed(1)??'—'} · pitch ${fix.pitch?.toStringAsFixed(1)??'—'}'),
     ])));

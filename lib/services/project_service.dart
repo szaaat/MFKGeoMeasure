@@ -492,7 +492,7 @@ class ProjectService extends ChangeNotifier {
         if (f.geometry.isEmpty) continue;
         for (int i = 0; i < f.geometry.length; i++) {
           final p = f.geometry[i];
-          double gpsAltitude = (i < f.altitudes.length) ? f.altitudes[i] : 0.0;
+          double gpsAltitude = (i < f.altitudes.length) ? f.altitudes[i] : double.nan;
 
           bool isEllipsoidal = false;
           final prop = f.properties['isEllipsoidal'];
@@ -506,13 +506,13 @@ class ProjectService extends ChangeNotifier {
                   : GeoidInputFrame.assumed)
               : GeoidInputFrame.unknown;
           final eov = _eovService!.wgsToEov(p.latitude, p.longitude);
-          final orthoH = geoidService.getOrthoHeight(
+          final orthoH = gpsAltitude.isFinite ? geoidService.getOrthoHeight(
             p.latitude,
             p.longitude,
             gpsAltitude,
             isEllipsoidal: isEllipsoidal,
             referenceFrame: geoidFrame,
-          );
+          ) : null;
 
           final stats = f.calculatedStats;
 
@@ -521,10 +521,10 @@ class ProjectService extends ChangeNotifier {
             p.latitude.toStringAsFixed(7), p.longitude.toStringAsFixed(7),
             eov[0].toStringAsFixed(2), // EOV_Y (Easting)
             eov[1].toStringAsFixed(2), // EOV_X (Northing)
-            gpsAltitude.toString(),
+            gpsAltitude.isFinite ? gpsAltitude.toString() : '',
             orthoH?.value.toStringAsFixed(3) ?? '',
-            isEllipsoidal ? 'ellipsoidal' : 'orthometric_source',
-            f.properties['referenceFrame'] ?? 'unknown',
+            gpsAltitude.isFinite ? (isEllipsoidal ? 'ellipsoidal' : 'orthometric_source') : '',
+            gpsAltitude.isFinite ? (f.properties['referenceFrame'] ?? 'unknown') : '',
             isEllipsoidal && orthoH != null ? orthoH.gridName : '',
             stats['Survey Method'] ?? 'IMPORTED',
             stats['GNSS Source'] ?? 'N/A',
@@ -624,7 +624,7 @@ class ProjectService extends ChangeNotifier {
         if (f.type == FeatureType.point) {
           type = "Point";
           final p = f.geometry.first;
-          final gpsH = f.altitudes.isNotEmpty ? f.altitudes[0] : 0.0;
+          final double gpsH = f.altitudes.isNotEmpty ? f.altitudes[0] : double.nan;
 
           bool isEllipsoidal = false;
           final prop = f.properties['isEllipsoidal'];
@@ -635,45 +635,50 @@ class ProjectService extends ChangeNotifier {
                   ? GeoidInputFrame.etrf2000
                   : GeoidInputFrame.assumed)
               : GeoidInputFrame.unknown;
-          final orthoH = geoidService.getOrthoHeight(
-            p.latitude,
-            p.longitude,
-            gpsH,
-            isEllipsoidal: isEllipsoidal,
-            referenceFrame: geoidFrame,
-          );
           final eov = _eovService!.wgsToEov(p.latitude, p.longitude);
           extraProperties['EOV_Y'] = double.parse(eov[0].toStringAsFixed(2));
           extraProperties['EOV_X'] = double.parse(eov[1].toStringAsFixed(2));
-          extraProperties['Source_Height'] = gpsH;
-          extraProperties['Height_Reference'] =
-              isEllipsoidal ? 'ellipsoidal' : 'orthometric_source';
-          extraProperties['Height_Reference_Frame'] =
-              f.properties['referenceFrame'] ?? 'unknown';
-          extraProperties['Geoid_Model'] =
-              isEllipsoidal && orthoH != null ? orthoH.gridName : null;
-          extraProperties['EOV_Transform'] =
-              f.properties['eovTransform'] ?? 'bmeGridAssumedFrame';
-          if (isEllipsoidal) {
-            extraProperties['Ellipsoidal_Height'] =
-                double.parse(gpsH.toStringAsFixed(3));
-          } else {
-            final undulation = geoidService.getUndulation(
+
+          if (gpsH.isFinite) {
+            final orthoH = geoidService.getOrthoHeight(
               p.latitude,
               p.longitude,
+              gpsH,
+              isEllipsoidal: isEllipsoidal,
               referenceFrame: geoidFrame,
             );
-            if (undulation != null) {
+            extraProperties['Source_Height'] = gpsH;
+            extraProperties['Height_Reference'] =
+                isEllipsoidal ? 'ellipsoidal' : 'orthometric_source';
+            extraProperties['Height_Reference_Frame'] =
+                f.properties['referenceFrame'] ?? 'unknown';
+            extraProperties['Geoid_Model'] =
+                isEllipsoidal && orthoH != null ? orthoH.gridName : null;
+            extraProperties['EOV_Transform'] =
+                f.properties['eovTransform'] ?? 'bmeGridAssumedFrame';
+            if (isEllipsoidal) {
               extraProperties['Ellipsoidal_Height'] =
-                  double.parse((gpsH + undulation.value).toStringAsFixed(3));
+                  double.parse(gpsH.toStringAsFixed(3));
+            } else {
+              final undulation = geoidService.getUndulation(
+                p.latitude,
+                p.longitude,
+                referenceFrame: geoidFrame,
+              );
+              if (undulation != null) {
+                extraProperties['Ellipsoidal_Height'] =
+                    double.parse((gpsH + undulation.value).toStringAsFixed(3));
+              }
             }
+            if (orthoH != null) {
+              extraProperties['Baltic_Height'] =
+                  double.parse(orthoH.value.toStringAsFixed(3));
+            }
+            coordinates = geoJsonCoordinate(p.latitude, p.longitude, gpsH,
+                isEllipsoidal: isEllipsoidal);
+          } else {
+            coordinates = [p.longitude, p.latitude];
           }
-          if (orthoH != null) {
-            extraProperties['Baltic_Height'] =
-                double.parse(orthoH.value.toStringAsFixed(3));
-          }
-          coordinates = geoJsonCoordinate(p.latitude, p.longitude, gpsH,
-              isEllipsoidal: isEllipsoidal);
         } else if (f.type == FeatureType.line) {
           type = "LineString";
           coordinates = f.geometry.asMap().entries.map((entry) {
@@ -1005,17 +1010,24 @@ class ProjectService extends ChangeNotifier {
     if (finalSamples.isNotEmpty) {
       double totalWeight = 0;
       double weightedLat = 0, weightedLon = 0, weightedAlt = 0;
+      int validAltCount = 0;
+      double totalAltWeight = 0;
+      
       for (var s in finalSamples) {
         final acc = s.horizontalAccuracy <= 0 ? 3.0 : s.horizontalAccuracy;
         double w = 1.0 / (acc * acc);
         weightedLat += s.latitude * w;
         weightedLon += s.longitude * w;
-        weightedAlt += s.ellipsoidalHeight * w;
         totalWeight += w;
+        if (s.altitude.isFinite) {
+          weightedAlt += s.altitude * w;
+          totalAltWeight += w;
+          validAltCount++;
+        }
       }
       double avgLat = weightedLat / totalWeight;
       double avgLon = weightedLon / totalWeight;
-      double avgAlt = weightedAlt / totalWeight;
+      double avgAlt = validAltCount > 0 ? (weightedAlt / totalAltWeight) : double.nan;
 
       double finalAccuracy = 1.0 / sqrt(totalWeight);
       debugPrint(
@@ -1024,7 +1036,7 @@ class ProjectService extends ChangeNotifier {
       addPointToGeometry(
         LatLng(avgLat, avgLon),
         avgAlt,
-        isEllipsoidal: true,
+        isEllipsoidal: finalSamples.first.isEllipsoidal,
         fix: finalSamples.first,
       );
     } else {
@@ -1141,45 +1153,48 @@ class ProjectService extends ChangeNotifier {
       }
 
       final double gpsAlt =
-          feature.altitudes.isNotEmpty ? feature.altitudes.first : 0.0;
+          feature.altitudes.isNotEmpty ? feature.altitudes.first : double.nan;
+      final bool hasAltitude = gpsAlt.isFinite;
       final bool isEllipsoidal = feature.properties['isEllipsoidal'] is List &&
               (feature.properties['isEllipsoidal'] as List).isNotEmpty
           ? (feature.properties['isEllipsoidal'] as List).first == true
           : false;
 
-      if (isEllipsoidal) {
-        feature.calculatedStats['Ellipszoidi magasság'] =
-            double.parse(gpsAlt.toStringAsFixed(3));
-        if (_geoidService != null) {
-          final orthoH = _geoidService!.getOrthoHeight(
-            lat,
-            lon,
-            gpsAlt,
-            isEllipsoidal: true,
-            referenceFrame: feature.properties['referenceFrame'] == 'etrf2000'
-                ? GeoidInputFrame.etrf2000
-                : GeoidInputFrame.assumed,
-          );
-          if (orthoH != null) {
-            feature.calculatedStats['Balti magasság'] =
-                double.parse(orthoH.value.toStringAsFixed(3));
+      if (hasAltitude) {
+        if (isEllipsoidal) {
+          feature.calculatedStats['Ellipszoidi magasság'] =
+              double.parse(gpsAlt.toStringAsFixed(3));
+          if (_geoidService != null) {
+            final orthoH = _geoidService!.getOrthoHeight(
+              lat,
+              lon,
+              gpsAlt,
+              isEllipsoidal: true,
+              referenceFrame: feature.properties['referenceFrame'] == 'etrf2000'
+                  ? GeoidInputFrame.etrf2000
+                  : GeoidInputFrame.assumed,
+            );
+            if (orthoH != null) {
+              feature.calculatedStats['Balti magasság'] =
+                  double.parse(orthoH.value.toStringAsFixed(3));
+            }
           }
-        }
-      } else {
-        feature.calculatedStats['Tengerszint feletti magasság (forrás)'] =
-            double.parse(gpsAlt.toStringAsFixed(3));
-        if (_geoidService != null) {
-          final undulation = _geoidService!.getUndulation(
-            lat,
-            lon,
-            referenceFrame: GeoidInputFrame.assumed,
-          );
-          if (undulation != null) {
-            feature.calculatedStats['Ellipszoidi magasság (számított)'] =
-                double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
-          } else {
-            feature.calculatedStats['Ellipszoidi magasság (számított)'] =
-                double.parse(gpsAlt.toStringAsFixed(3));
+        } else {
+          feature.calculatedStats['Tengerszint feletti magasság (forrás)'] =
+              double.parse(gpsAlt.toStringAsFixed(3));
+          if (_geoidService != null) {
+            final undulation = _geoidService!.getUndulation(
+              lat,
+              lon,
+              referenceFrame: GeoidInputFrame.assumed,
+            );
+            if (undulation != null) {
+              feature.calculatedStats['Ellipszoidi magasság (számított)'] =
+                  double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
+            } else {
+              feature.calculatedStats['Ellipszoidi magasság (számított)'] =
+                  double.parse(gpsAlt.toStringAsFixed(3));
+            }
           }
         }
       }
@@ -1502,7 +1517,8 @@ class ProjectService extends ChangeNotifier {
         }
       }
 
-      final double gpsAlt = altitudes.isNotEmpty ? altitudes.first : 0.0;
+      final double gpsAlt = altitudes.isNotEmpty ? altitudes.first : double.nan;
+      final bool hasAltitude = gpsAlt.isFinite;
       final bool isEllipsoidal =
           isEllipsoidalFlags.isNotEmpty ? isEllipsoidalFlags.first : false;
       final geoidFrame = isEllipsoidal &&
@@ -1514,32 +1530,34 @@ class ProjectService extends ChangeNotifier {
               ? GeoidInputFrame.assumed
               : GeoidInputFrame.unknown;
 
-      if (isEllipsoidal) {
-        stats['Ellipszoidi magasság'] = double.parse(gpsAlt.toStringAsFixed(3));
-        if (_geoidService != null) {
-          final orthoH = _geoidService!.getOrthoHeight(
-            lat,
-            lon,
-            gpsAlt,
-            isEllipsoidal: true,
-            referenceFrame: geoidFrame,
-          );
-          if (orthoH != null) {
-            stats['Balti magasság'] = double.parse(orthoH.value.toStringAsFixed(3));
-            stats['Használt geoid rács'] = orthoH.gridName;
+      if (hasAltitude) {
+        if (isEllipsoidal) {
+          stats['Ellipszoidi magasság'] = double.parse(gpsAlt.toStringAsFixed(3));
+          if (_geoidService != null) {
+            final orthoH = _geoidService!.getOrthoHeight(
+              lat,
+              lon,
+              gpsAlt,
+              isEllipsoidal: true,
+              referenceFrame: geoidFrame,
+            );
+            if (orthoH != null) {
+              stats['Balti magasság'] = double.parse(orthoH.value.toStringAsFixed(3));
+              stats['Használt geoid rács'] = orthoH.gridName;
+            }
           }
-        }
-      } else {
-        stats['Tengerszint feletti magasság (forrás)'] = double.parse(gpsAlt.toStringAsFixed(3));
-        if (_geoidService != null) {
-          final undulation = _geoidService!.getUndulation(
-            lat,
-            lon,
-            referenceFrame: GeoidInputFrame.assumed,
-          );
-          if (undulation != null) {
-            stats['Ellipszoidi magasság (számított)'] =
-                double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
+        } else {
+          stats['Tengerszint feletti magasság (forrás)'] = double.parse(gpsAlt.toStringAsFixed(3));
+          if (_geoidService != null) {
+            final undulation = _geoidService!.getUndulation(
+              lat,
+              lon,
+              referenceFrame: GeoidInputFrame.assumed,
+            );
+            if (undulation != null) {
+              stats['Ellipszoidi magasság (számított)'] =
+                  double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
+            }
           }
         }
       }

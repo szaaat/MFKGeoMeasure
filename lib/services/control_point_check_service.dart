@@ -48,7 +48,7 @@ class ControlPointEpoch {
   final double longitude;
   final double easting;
   final double northing;
-  final double ellipsoidalHeight;
+  final double? ellipsoidalHeight;
   final double? orthometricHeight;
   final bool heightIsEllipsoidal;
   final String rtkStatus;
@@ -134,7 +134,7 @@ class ControlPointEpoch {
         longitude: (json['longitude'] as num).toDouble(),
         easting: (json['easting'] as num).toDouble(),
         northing: (json['northing'] as num).toDouble(),
-        ellipsoidalHeight: (json['ellipsoidalHeight'] as num).toDouble(),
+        ellipsoidalHeight: (json['ellipsoidalHeight'] as num?)?.toDouble(),
         orthometricHeight: (json['orthometricHeight'] as num?)?.toDouble(),
         heightIsEllipsoidal: json['heightIsEllipsoidal'] as bool? ?? true,
         rtkStatus: json['rtkStatus']?.toString() ?? 'UNKNOWN',
@@ -237,7 +237,7 @@ class ControlPointMetrics {
       rmse2d: math.sqrt(errors.map((v) => v * v).reduce((a, b) => a + b) / errors.length),
       maxError2d: sortedErrors.last,
       percentile95Error2d: sortedErrors[p95Index],
-      meanHeight: mean(epochs.map((e) => e.ellipsoidalHeight).toList()),
+      meanHeight: mean(epochs.map((e) => e.ellipsoidalHeight).whereType<double>().toList()),
       allFixed: allFixed,
       rtkStatus: rtk,
       insStatus: ins,
@@ -277,7 +277,7 @@ class ControlPointMeasurementSession {
     final kind = reference.heightReference;
     if (referenceHeight == null || kind == null || epochs.isEmpty) return null;
     final heights = kind == 'ellipsoidal'
-        ? epochs.where((e) => e.heightIsEllipsoidal).map((e) => e.ellipsoidalHeight).toList()
+        ? epochs.where((e) => e.heightIsEllipsoidal).map((e) => e.ellipsoidalHeight).whereType<double>().toList()
         : kind == 'orthometric'
             ? epochs.map((e) => e.orthometricHeight).whereType<double>().toList()
             : <double>[];
