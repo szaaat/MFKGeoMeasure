@@ -1166,7 +1166,7 @@ class ProjectService extends ChangeNotifier {
           }
         }
       } else {
-        feature.calculatedStats['Balti magasság'] =
+        feature.calculatedStats['Tengerszint feletti magasság (forrás)'] =
             double.parse(gpsAlt.toStringAsFixed(3));
         if (_geoidService != null) {
           final undulation = _geoidService!.getUndulation(
@@ -1175,10 +1175,10 @@ class ProjectService extends ChangeNotifier {
             referenceFrame: GeoidInputFrame.assumed,
           );
           if (undulation != null) {
-            feature.calculatedStats['Ellipszoidi magasság'] =
+            feature.calculatedStats['Ellipszoidi magasság (számított)'] =
                 double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
           } else {
-            feature.calculatedStats['Ellipszoidi magasság'] =
+            feature.calculatedStats['Ellipszoidi magasság (számított)'] =
                 double.parse(gpsAlt.toStringAsFixed(3));
           }
         }
@@ -1530,7 +1530,7 @@ class ProjectService extends ChangeNotifier {
           }
         }
       } else {
-        stats['Balti magasság'] = double.parse(gpsAlt.toStringAsFixed(3));
+        stats['Tengerszint feletti magasság (forrás)'] = double.parse(gpsAlt.toStringAsFixed(3));
         if (_geoidService != null) {
           final undulation = _geoidService!.getUndulation(
             lat,
@@ -1538,7 +1538,7 @@ class ProjectService extends ChangeNotifier {
             referenceFrame: GeoidInputFrame.assumed,
           );
           if (undulation != null) {
-            stats['Ellipszoidi magasság'] =
+            stats['Ellipszoidi magasság (számított)'] =
                 double.parse((gpsAlt + undulation.value).toStringAsFixed(3));
           }
         }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:raw_gnss/raw_gnss.dart';
 import 'package:mfk_geomeasure/models/gnss_fix.dart';
@@ -13,10 +14,14 @@ class InternalGnssProvider implements GnssProvider {
       StreamController<GnssRawMeasurement>.broadcast();
   final _rawByteController = StreamController<List<int>>.broadcast();
   StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription<dynamic>? _nativeLocationSubscription;
   StreamSubscription? _rawSubscription;
 
   final _rawGnss = RawGnss();
   final GeoidCorrectionService? _geoidService;
+
+  static const _nativeLocationChannel =
+      EventChannel('hu.uni.miskolc.mfkGeomeasure/native_location');
 
   InternalGnssProvider({GeoidCorrectionService? geoidService})
       : _geoidService = geoidService;
@@ -53,18 +58,26 @@ class InternalGnssProvider implements GnssProvider {
       throw Exception("Location permissions are permanently denied.");
     }
 
-    const locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.best,
-      distanceFilter: 0,
-    );
+    if (Platform.isIOS) {
+      _nativeLocationSubscription = _nativeLocationChannel
+          .receiveBroadcastStream()
+          .listen((dynamic event) {
+        if (event is Map) {
+          _fixController.add(_mapNativeIOSLocationToGnssFix(event));
+        }
+      });
+    } else {
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.best,
+        distanceFilter: 0,
+      );
 
-    _positionSubscription =
-        Geolocator.getPositionStream(locationSettings: locationSettings)
-            .listen((Position position) {
-      _fixController.add(_mapPositionToGnssFix(position));
-    });
+      _positionSubscription =
+          Geolocator.getPositionStream(locationSettings: locationSettings)
+              .listen((Position position) {
+        _fixController.add(_mapPositionToGnssFix(position));
+      });
 
-    if (Platform.isAndroid) {
       _rawSubscription = _rawGnss.gnssMeasurementEvents.listen((model) {
         final now = DateTime.now();
         for (var m in (model.measurements ?? [])) {
@@ -93,8 +106,10 @@ class InternalGnssProvider implements GnssProvider {
   @override
   Future<void> disconnect() async {
     await _positionSubscription?.cancel();
+    await _nativeLocationSubscription?.cancel();
     await _rawSubscription?.cancel();
     _positionSubscription = null;
+    _nativeLocationSubscription = null;
     _rawSubscription = null;
   }
 
@@ -109,6 +124,71 @@ class InternalGnssProvider implements GnssProvider {
     _fixController.close();
     _rawMeasurementController.close();
     _rawByteController.close();
+  }
+
+  GnssFix _mapNativeIOSLocationToGnssFix(Map<dynamic, dynamic> data) {
+    final double latitude = data['latitude'] as double;
+    final double longitude = data['longitude'] as double;
+    final double altitude = data['altitude'] as double; // iOS MSL
+    final double? ellipsoidalAltitude = data['ellipsoidalAltitude'] as double?;
+    final double hAccuracy = data['horizontalAccuracy'] as double;
+    final double vAccuracy = data['verticalAccuracy'] as double;
+    final double timestampMs = data['timestamp'] as double;
+    final DateTime timestamp =
+        DateTime.fromMillisecondsSinceEpoch(timestampMs.round());
+
+    double ellipsoidalHeight;
+    double? mslAltitude;
+    double? geoidSeparation;
+    bool isEllipsoidal;
+
+    if (ellipsoidalAltitude != null) {
+      // iOS 15+ has ellipsoidal altitude
+      isEllipsoidal = true;
+      ellipsoidalHeight = ellipsoidalAltitude;
+      // Recompute BME undulation if possible
+      if (_geoidService != null) {
+        final geoidResult = _geoidService!.getUndulation(
+          latitude,
+          longitude,
+          referenceFrame: GeoidInputFrame.assumed,
+        );
+        if (geoidResult != null) {
+          geoidSeparation = geoidResult.value;
+          mslAltitude = ellipsoidalHeight - geoidSeparation;
+        } else {
+          // If outside BME, rely on iOS's orthometric height
+          mslAltitude = altitude;
+          geoidSeparation = ellipsoidalHeight - mslAltitude;
+        }
+      } else {
+        mslAltitude = altitude;
+        geoidSeparation = ellipsoidalHeight - mslAltitude;
+      }
+    } else {
+      // Prior to iOS 15 or not available, we only have orthometric MSL altitude
+      isEllipsoidal = false;
+      mslAltitude = altitude;
+      ellipsoidalHeight = altitude; // We don't have it, put dummy value
+    }
+
+    return GnssFix(
+      latitude: latitude,
+      longitude: longitude,
+      altitude: altitude, // The raw field is altitude (MSL on iOS)
+      ellipsoidalHeight: ellipsoidalHeight,
+      isEllipsoidal: isEllipsoidal,
+      mslAltitude: mslAltitude,
+      geoidSeparation: geoidSeparation,
+      horizontalAccuracy: hAccuracy,
+      verticalAccuracy: vAccuracy,
+      fixType: hAccuracy < 10 && hAccuracy > 0 ? GnssFixType.autonomous : GnssFixType.none,
+      satellitesUsed: 0,
+      source: GnssSource.internal,
+      receiverName: "Internal GPS (iOS)",
+      connectionType: GnssConnectionType.internal,
+      timestamp: timestamp,
+    );
   }
 
   GnssFix _mapPositionToGnssFix(Position pos) {
