@@ -72,10 +72,15 @@ class DiagnosticEpochRecord {
   final double kalmanOutputLat;
   final double kalmanOutputLon;
   final double kalmanDistance;
-  final double rawEovY;
-  final double rawEovX;
-  final double kalmanEovY;
-  final double kalmanEovX;
+  final double? rawEovY;
+  final double? rawEovX;
+  final double? kalmanEovY;
+  final double? kalmanEovX;
+  final String rawEovStatus;
+  final String kalmanEovStatus;
+  final double? ellipsoidalHeight;
+  final bool isEllipsoidal;
+  final String referenceFrame;
   final Map<String, dynamic>? kalmanDiagnostic;
 
   DiagnosticEpochRecord({
@@ -104,6 +109,11 @@ class DiagnosticEpochRecord {
     required this.rawEovX,
     required this.kalmanEovY,
     required this.kalmanEovX,
+    required this.rawEovStatus,
+    required this.kalmanEovStatus,
+    required this.ellipsoidalHeight,
+    required this.isEllipsoidal,
+    required this.referenceFrame,
     this.kalmanDiagnostic,
   });
 
@@ -133,6 +143,11 @@ class DiagnosticEpochRecord {
     'raw_eov_x': rawEovX,
     'kalman_eov_y': kalmanEovY,
     'kalman_eov_x': kalmanEovX,
+    'raw_eov_status': rawEovStatus,
+    'kalman_eov_status': kalmanEovStatus,
+    'ellipsoidal_height': ellipsoidalHeight,
+    'is_ellipsoidal': isEllipsoidal,
+    'reference_frame': referenceFrame,
     'kalman_diagnostic': kalmanDiagnostic,
   };
 
@@ -140,8 +155,9 @@ class DiagnosticEpochRecord {
       '${timestamp.toIso8601String()},$epochId,$source,$rawLat,$rawLon,$rawAlt,$hAcc,$vAcc,'
       '$fixType,$rtkStatus,$satsUsed,$insStatus,$accepted,"$rejectReason",$kalmanEnabled,'
       '$kalmanInitialized,$kalmanInputLat,$kalmanInputLon,$kalmanOutputLat,$kalmanOutputLon,'
-      '${kalmanDistance.toStringAsFixed(4)},${rawEovY.toStringAsFixed(3)},${rawEovX.toStringAsFixed(3)},'
-      '${kalmanEovY.toStringAsFixed(3)},${kalmanEovX.toStringAsFixed(3)}';
+      '${kalmanDistance.toStringAsFixed(4)},${rawEovY?.toStringAsFixed(3) ?? ''},${rawEovX?.toStringAsFixed(3) ?? ''},'
+      '${kalmanEovY?.toStringAsFixed(3) ?? ''},${kalmanEovX?.toStringAsFixed(3) ?? ''},'
+      '$rawEovStatus,$kalmanEovStatus,${ellipsoidalHeight?.toStringAsFixed(3) ?? ''},$isEllipsoidal,$referenceFrame';
 }
 
 class DiagnosticCaptureSummary {
@@ -319,8 +335,23 @@ class GnssInfoService extends ChangeNotifier {
     });
   }
 
+  bool _eovGridsLoadAttempted = false;
+  Future<void>? _eovGridLoadFuture;
+
+  Future<void> _ensureEovGridsLoaded() {
+    if (_eovGridsLoadAttempted) return Future.value();
+    _eovGridLoadFuture ??= _eovService.loadBmeGrids().then((_) {
+      _eovGridsLoadAttempted = true;
+    }).catchError((e) {
+      debugPrint('[MFKRTK][EOV] Failed to load BME grids: $e');
+      _eovGridsLoadAttempted = true;
+    });
+    return _eovGridLoadFuture!;
+  }
+
   Future<void> setProvider(GnssProvider provider,
       {RtcmService? rtcmService}) async {
+    _ensureEovGridsLoaded();
     final generation = ++_providerGeneration;
     final previousProvider = _activeProvider;
 
@@ -441,7 +472,7 @@ class GnssInfoService extends ChangeNotifier {
         outputLon = filtered[1];
 
         const distanceCalc = Distance();
-        _kalmanDistance = distanceCalc.as(LengthUnit.Meter, LatLng(fix.latitude, fix.longitude), LatLng(outputLat, outputLon));
+        _kalmanDistance = distanceCalc.distance(LatLng(fix.latitude, fix.longitude), LatLng(outputLat, outputLon));
       } else {
         _kalmanDistance = 0.0;
       }
@@ -512,10 +543,15 @@ class GnssInfoService extends ChangeNotifier {
           kalmanOutputLat: outputLat,
           kalmanOutputLon: outputLon,
           kalmanDistance: _kalmanDistance,
-          rawEovY: rawEov.coordinates?[0] ?? 0.0,
-          rawEovX: rawEov.coordinates?[1] ?? 0.0,
-          kalmanEovY: kalmanEov.coordinates?[0] ?? 0.0,
-          kalmanEovX: kalmanEov.coordinates?[1] ?? 0.0,
+          rawEovY: rawEov.coordinates?[0],
+          rawEovX: rawEov.coordinates?[1],
+          kalmanEovY: kalmanEov.coordinates?[0],
+          kalmanEovX: kalmanEov.coordinates?[1],
+          rawEovStatus: rawEov.status.name,
+          kalmanEovStatus: kalmanEov.status.name,
+          ellipsoidalHeight: fix.ellipsoidalHeight,
+          isEllipsoidal: fix.isEllipsoidal,
+          referenceFrame: fix.referenceFrame.name,
           kalmanDiagnostic: _kalmanFilter.lastDiagnostic?.toJson(),
         ));
       }
@@ -635,7 +671,7 @@ class GnssInfoService extends ChangeNotifier {
     final jsonPath = '${dir.path}/MFKRTK_DIAGNOSTIC_$timeStr.json';
 
     final csvBuffer = StringBuffer();
-    csvBuffer.writeln('timestamp,epoch_id,source,raw_lat,raw_lon,raw_alt,h_acc,v_acc,fix_type,rtk_status,sats_used,ins_status,accepted,reject_reason,kalman_enabled,kalman_initialized,kalman_input_lat,kalman_input_lon,kalman_output_lat,kalman_output_lon,kalman_distance_m,raw_eov_y,raw_eov_x,kalman_eov_y,kalman_eov_x');
+    csvBuffer.writeln('timestamp,epoch_id,source,raw_lat,raw_lon,raw_alt,h_acc,v_acc,fix_type,rtk_status,sats_used,ins_status,accepted,reject_reason,kalman_enabled,kalman_initialized,kalman_input_lat,kalman_input_lon,kalman_output_lat,kalman_output_lon,kalman_distance_m,raw_eov_y,raw_eov_x,kalman_eov_y,kalman_eov_x,raw_eov_status,kalman_eov_status,ellipsoidal_height,is_ellipsoidal,reference_frame');
 
     for (var rec in _capturedEpochs) {
       csvBuffer.writeln(rec.toCsvRow());
@@ -646,7 +682,11 @@ class GnssInfoService extends ChangeNotifier {
 
     final rtkFixEpochs = _capturedEpochs.where((e) => e.rtkStatus.toLowerCase() == 'fixed').length;
     final rejectedEpochs = _capturedEpochs.where((e) => !e.accepted).length;
-    final insRejectedEpochs = _capturedEpochs.where((e) => e.insStatus.toUpperCase().contains('NOT') || e.insStatus.toUpperCase().contains('ALIGN') || e.insStatus.toUpperCase().contains('WAITING')).length;
+    final insRejectedEpochs = _capturedEpochs.where((e) {
+      final s = e.insStatus.toUpperCase();
+      if (s == 'N/A' || s == 'UNKNOWN' || s.isEmpty) return false;
+      return s != 'INS_SOLUTION_GOOD' && s != 'INS_ALIGNMENT_COMPLETE';
+    }).length;
 
     final shifts = _capturedEpochs.map((e) => e.kalmanDistance).toList();
     final meanShift = shifts.isNotEmpty ? shifts.reduce((a, b) => a + b) / shifts.length : 0.0;

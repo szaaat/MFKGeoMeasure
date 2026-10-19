@@ -10,7 +10,8 @@ enum EovTransformStatus {
   bmeGridAssumedFrame,
   legacy,
   unknownReferenceFrame,
-  outsideGrid
+  outsideGrid,
+  gridNotLoaded
 }
 
 class EovTransformResult {
@@ -87,6 +88,13 @@ class EovService {
         status: EovTransformStatus.legacy,
       );
     }
+    if (!gridService.isLoaded) {
+      return EovTransformResult(
+        coordinates: null,
+        mode: selected,
+        status: EovTransformStatus.gridNotLoaded,
+      );
+    }
     final hd = gridService.etrfToHd(lon, lat);
     if (hd == null) {
       return EovTransformResult(
@@ -135,6 +143,13 @@ class EovService {
         coordinates: [res.y, res.x],
         mode: selected,
         status: EovTransformStatus.legacy,
+      );
+    }
+    if (!gridService.isLoaded) {
+      return EovTransformResult(
+        coordinates: null,
+        mode: selected,
+        status: EovTransformStatus.gridNotLoaded,
       );
     }
     final hdProjection = Projection.get('MFK_HD72_EOV')!;
