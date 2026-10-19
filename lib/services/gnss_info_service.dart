@@ -685,7 +685,9 @@ class GnssInfoService extends ChangeNotifier {
     final insRejectedEpochs = _capturedEpochs.where((e) {
       final s = e.insStatus.toUpperCase();
       if (s == 'N/A' || s == 'UNKNOWN' || s.isEmpty) return false;
-      return s != 'INS_SOLUTION_GOOD' && s != 'INS_ALIGNMENT_COMPLETE';
+      if (s == 'INS_SOLUTION_GOOD' || s == 'INS_ALIGNMENT_COMPLETE') return false;
+      if (s == 'INS_ALIGNING' || s == 'WAITING_AZIMUTH' || s == 'WAITING_INITIALPOS') return false;
+      return true;
     }).length;
 
     final shifts = _capturedEpochs.map((e) => e.kalmanDistance).toList();
