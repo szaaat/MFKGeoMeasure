@@ -42,6 +42,9 @@ class InternalGnssProvider implements GnssProvider {
 
   @override
   Future<void> connect() async {
+    // Biztosítjuk, hogy ne legyenek beragadt stream-ek, ha többször hívják meg a connect-et.
+    await disconnect();
+
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception("Location services are disabled.");

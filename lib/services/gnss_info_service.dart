@@ -193,6 +193,8 @@ class DiagnosticCaptureSummary {
 }
 
 class GnssInfoService extends ChangeNotifier {
+  static const int maxMfkReconnectAttempts = 3;
+
   GnssStatusData _currentStatus = GnssStatusData();
   StreamSubscription? _rawGnssSubscription;
   StreamSubscription? _fixSubscription;
@@ -210,6 +212,9 @@ class GnssInfoService extends ChangeNotifier {
   String? _rtcmAlert;
   String? _lastMfkConfigMessage;
   bool _rtcmAlertDismissed = false;
+  RtcmService? _rtcmService;
+  
+  final GeoidCorrectionService _geoidService;
   
   // Note: Internal status monitoring for Android still uses RawGnss directly for now
   // until GnssProvider is fully extended for status unification.
@@ -306,10 +311,12 @@ class GnssInfoService extends ChangeNotifier {
     notifyListeners();
   }
 
-  GnssInfoService(GeoidCorrectionService geoidService) {
+  Timer? _stabilityTimer;
+
+  GnssInfoService(GeoidCorrectionService geoidService) : _geoidService = geoidService {
     _loadSettings();
     // Alapértelmezett a belső GPS
-    setProvider(InternalGnssProvider(geoidService: geoidService));
+    setProvider(InternalGnssProvider(geoidService: _geoidService));
     
     if (Platform.isAndroid) {
       _initRawGnssListener();
@@ -317,7 +324,7 @@ class GnssInfoService extends ChangeNotifier {
     rawLogger.addListener(notifyListeners);
     
     // Stability checker loop
-    Timer.periodic(const Duration(milliseconds: 500), (timer) {
+    _stabilityTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       final bool requirementActive = _ntripSettings.requireStableFix && _activeProvider is! InternalGnssProvider;
       
       if (requirementActive) {
@@ -351,6 +358,7 @@ class GnssInfoService extends ChangeNotifier {
 
   Future<void> setProvider(GnssProvider provider,
       {RtcmService? rtcmService}) async {
+    if (rtcmService != null) _rtcmService = rtcmService;
     _ensureEovGridsLoaded();
     final generation = ++_providerGeneration;
     final previousProvider = _activeProvider;
@@ -630,6 +638,8 @@ class GnssInfoService extends ChangeNotifier {
     } catch (e) {
       if (identical(_activeProvider, provider)) {
         debugPrint("Provider connection error: $e");
+        _lastMfkConfigMessage = 'Hiba a GNSS indításakor: $e';
+        _mfkConnected = false;
       }
     }
     
@@ -827,7 +837,15 @@ class GnssInfoService extends ChangeNotifier {
         debugPrint(
             '[MFKRTK] BLE reconnect failed on attempt $_mfkReconnectAttempt: $e');
         _mfkReconnectInProgress = false;
-        _handleMfkConnectionLost(provider, generation);
+        if (_mfkReconnectAttempt >= maxMfkReconnectAttempts) {
+          debugPrint(
+              '[MFKRTK] BLE reconnect failed after $_mfkReconnectAttempt attempts. Falling back to internal GNSS.');
+          _lastMfkConfigMessage = 'Végleges szakadás, visszaállás belső GPS-re';
+          notifyListeners();
+          setProvider(InternalGnssProvider(geoidService: _geoidService), rtcmService: _rtcmService);
+        } else {
+          _handleMfkConnectionLost(provider, generation);
+        }
         return;
       }
       _mfkReconnectInProgress = false;
@@ -970,6 +988,7 @@ class GnssInfoService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _stabilityTimer?.cancel();
     _mfkReconnectTimer?.cancel();
     _rawGnssSubscription?.cancel();
     _fixSubscription?.cancel();
