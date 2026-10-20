@@ -978,7 +978,7 @@ class ProjectService extends ChangeNotifier {
       averagingProgress =
           (elapsed / (maxDurationSeconds * 1000)).clamp(0.0, 1.0);
 
-      final acc = fix.horizontalAccuracy <= 0 ? 3.0 : fix.horizontalAccuracy;
+      final acc = (!fix.horizontalAccuracy.isFinite || fix.horizontalAccuracy <= 0 || fix.horizontalAccuracy >= 99.0) ? 99.9 : fix.horizontalAccuracy;
 
       if (acc <= filterLimit) {
         if (samples.length < 3 ||
@@ -990,11 +990,11 @@ class ProjectService extends ChangeNotifier {
 
       final activeList = samples.isNotEmpty ? samples : allReceivedFixes;
       double best = activeList
-          .map((p) => p.horizontalAccuracy <= 0 ? 3.0 : p.horizontalAccuracy)
+          .map((p) => (!p.horizontalAccuracy.isFinite || p.horizontalAccuracy <= 0 || p.horizontalAccuracy >= 99.0) ? 99.9 : p.horizontalAccuracy)
           .reduce((a, b) => a < b ? a : b);
       double avg = activeList
               .map(
-                  (p) => p.horizontalAccuracy <= 0 ? 3.0 : p.horizontalAccuracy)
+                  (p) => (!p.horizontalAccuracy.isFinite || p.horizontalAccuracy <= 0 || p.horizontalAccuracy >= 99.0) ? 99.9 : p.horizontalAccuracy)
               .reduce((a, b) => a + b) /
           activeList.length;
       currentBatchBestAccuracy = best;
@@ -1007,14 +1007,21 @@ class ProjectService extends ChangeNotifier {
 
     final finalSamples = samples.isNotEmpty ? samples : allReceivedFixes;
 
-    if (finalSamples.isNotEmpty) {
+    // Kiszűrjük azokat a méréseket, amelyeknek az accuracy értéke teljesen megbízhatatlan (pl. 99.9),
+    // hogy meggátoljuk a hamis koordináták bekerülését a mentésbe.
+    final validFinalSamples = finalSamples.where((s) {
+      final acc = (!s.horizontalAccuracy.isFinite || s.horizontalAccuracy <= 0 || s.horizontalAccuracy >= 99.0) ? 99.9 : s.horizontalAccuracy;
+      return acc < 99.0;
+    }).toList();
+
+    if (validFinalSamples.isNotEmpty) {
       double totalWeight = 0;
       double weightedLat = 0, weightedLon = 0, weightedAlt = 0;
       int validAltCount = 0;
       double totalAltWeight = 0;
       
-      for (var s in finalSamples) {
-        final acc = s.horizontalAccuracy <= 0 ? 3.0 : s.horizontalAccuracy;
+      for (var s in validFinalSamples) {
+        final acc = s.horizontalAccuracy;
         double w = 1.0 / (acc * acc);
         weightedLat += s.latitude * w;
         weightedLon += s.longitude * w;
@@ -1031,16 +1038,17 @@ class ProjectService extends ChangeNotifier {
 
       double finalAccuracy = 1.0 / sqrt(totalWeight);
       debugPrint(
-          "🏁 Végső minta: ${finalSamples.length} db, becsült hiba: ${finalAccuracy.toStringAsFixed(2)}m");
+          "🏁 Végső minta: ${validFinalSamples.length} db, becsült hiba: ${finalAccuracy.toStringAsFixed(2)}m");
 
       addPointToGeometry(
         LatLng(avgLat, avgLon),
         avgAlt,
-        isEllipsoidal: finalSamples.first.isEllipsoidal,
-        fix: finalSamples.first,
+        isEllipsoidal: validFinalSamples.first.isEllipsoidal,
+        fix: validFinalSamples.first,
       );
     } else {
-      debugPrint("⚠️ Nem volt mérés, a pont rögzítése megszakadt.");
+      debugPrint("⚠️ Nem volt mérés, vagy minden mérés érvénytelen pontosságú volt. A pont rögzítése megszakadt.");
+      // Opcionálisan ide jöhet egy hiba dobása, amit a felület lekezel, de a jelenlegi logika szerint a rögzítés csak csendben megszakad.
     }
 
     isAveraging = false;

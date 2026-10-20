@@ -40,6 +40,7 @@ class MfkRtkOtaService extends ChangeNotifier {
   Uint8List? _firmwareBytes;
   Uint8List? get firmwareBytes => _firmwareBytes;
   MfkRtkProvider? _provider;
+  MfkRtkProvider? _rtcmPausedProvider;
   MfkRtkProvider? get provider => _provider;
   StreamSubscription? _configSub;
   Timer? _protocolTimer;
@@ -56,7 +57,9 @@ class MfkRtkOtaService extends ChangeNotifier {
 
   void attach(MfkRtkProvider provider) {
     if (_provider == provider) return;
-    _configSub?.cancel();
+    final configSub = _configSub;
+    _configSub = null;
+    configSub?.cancel();
     _provider = provider;
     if (_state == OtaUpdateState.rebooting || _state == OtaUpdateState.reconnecting) {
       _setState(OtaUpdateState.reconnecting);
@@ -71,7 +74,9 @@ class MfkRtkOtaService extends ChangeNotifier {
       cancelUpdate();
     }
     _provider = null;
-    _configSub?.cancel();
+    final configSub = _configSub;
+    _configSub = null;
+    configSub?.cancel();
   }
 
   void _setState(OtaUpdateState state, {String? error}) {
@@ -80,7 +85,8 @@ class MfkRtkOtaService extends ChangeNotifier {
     if (state == OtaUpdateState.completed ||
         state == OtaUpdateState.failed ||
         state == OtaUpdateState.cancelled) {
-      _provider?.setRtcmForwardingPausedForOta(false);
+      _rtcmPausedProvider?.setRtcmForwardingPausedForOta(false);
+      _rtcmPausedProvider = null;
     }
     notifyListeners();
   }
@@ -167,6 +173,7 @@ class MfkRtkOtaService extends ChangeNotifier {
     }
 
     provider.setRtcmForwardingPausedForOta(true);
+    _rtcmPausedProvider = provider;
     final transport = provider.transport;
     const serviceUuid = MfkRtkConstants.serviceUuid;
     const configUuid = MfkRtkConstants.configUuid;
@@ -228,8 +235,11 @@ class MfkRtkOtaService extends ChangeNotifier {
         return;
       }
       if (msg.startsWith('OTA_PROGRESS:')) {
-        _deviceProgress = double.tryParse(msg.substring('OTA_PROGRESS:'.length)) ?? _deviceProgress;
-        notifyListeners();
+        final progress = double.tryParse(msg.substring('OTA_PROGRESS:'.length));
+        if (progress != null && progress.isFinite) {
+          _deviceProgress = progress.clamp(0.0, 100.0);
+          notifyListeners();
+        }
         return;
       }
       if (msg == 'OTA_SUCCESS' && _state == OtaUpdateState.finalizing) {

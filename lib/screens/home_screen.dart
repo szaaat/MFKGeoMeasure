@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/language_provider.dart';
 import '../services/geoid_service.dart';
+import '../services/gnss/internal_gnss_provider.dart';
+import '../services/gnss_info_service.dart';
 import '../widgets/location_disclosure_dialog.dart';
 import 'map_screen.dart';
 import 'learning/learning_menu_screen.dart';
@@ -143,9 +145,47 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-  
+
+                Consumer<GnssInfoService>(
+                  builder: (context, gnssService, _) {
+                    final error = gnssService.internalGnssError;
+                    if (error == null) return const SizedBox.shrink();
+
+                    final isHungarian =
+                        Localizations.localeOf(context).languageCode == 'hu';
+                    final message = switch (error) {
+                      InternalGnssError.locationServicesDisabled => isHungarian
+                          ? 'Kapcsold be a telefon helymeghatározását a GPS használatához.'
+                          : 'Turn on location services to use the phone GPS.',
+                      InternalGnssError.permissionDenied => isHungarian
+                          ? 'A helyengedély nélkül a telefonos GPS nem tud pozíciót adni. A GNSS-beállításoknál válaszd újra a Telefonos GPS-t az engedélykéréshez.'
+                          : 'Phone GPS needs location permission. Select Phone GPS again in GNSS settings to request it.',
+                      InternalGnssError.permissionDeniedForever => isHungarian
+                          ? 'A helyengedély véglegesen le van tiltva. Engedélyezd az alkalmazás beállításaiban.'
+                          : 'Location permission is permanently denied. Enable it in the app settings.',
+                      InternalGnssError.unavailable => isHungarian
+                          ? 'A telefonos helymeghatározás nem indult el. Ellenőrizd az engedélyeket és a helymeghatározás beállítását.'
+                          : 'Phone location could not start. Check the app permission and location setting.',
+                    };
+
+                    return Card(
+                      color: Colors.orange.shade50,
+                      child: ListTile(
+                        leading: Icon(Icons.location_off, color: Colors.orange.shade900),
+                        title: Text(
+                          isHungarian
+                              ? 'A telefonos GPS nem érhető el'
+                              : 'Phone GPS unavailable',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(message),
+                      ),
+                    );
+                  },
+                ),
+
                 const SizedBox(height: 15),
-  
+
                 // 3b. TANULÁS GOMB
                 SizedBox(
                   width: double.infinity,

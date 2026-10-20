@@ -23,6 +23,7 @@ class BynavNavSolution {
   final double? gpsSeconds;
 
   final String? insStatus;
+  final String? solutionStatus;
   final String? posType;
   final int? satellitesUsed;
   final double? correctionAge;
@@ -44,6 +45,7 @@ class BynavNavSolution {
     this.gpsWeek,
     this.gpsSeconds,
     this.insStatus,
+    this.solutionStatus,
     this.posType,
     this.satellitesUsed,
     this.correctionAge,
@@ -94,10 +96,14 @@ class BynavParser {
       // Extract GPS week/seconds from header if available
       int? headerGpsWeek;
       double? headerGpsSeconds;
-      if (headerFields.length >= 6) {
-        headerGpsWeek = int.tryParse(headerFields[headerFields.length - 2]);
-        headerGpsSeconds =
-            double.tryParse(headerFields[headerFields.length - 1]);
+      if (trimmed.startsWith('%') && headerFields.length >= 3) {
+        // Short header: %MessageName, Week, Seconds
+        headerGpsWeek = int.tryParse(headerFields[1]);
+        headerGpsSeconds = double.tryParse(headerFields[2]);
+      } else if (trimmed.startsWith('#') && headerFields.length >= 7) {
+        // Extended header: #MessageName, Port, Seq, Idle, TimeStatus, Week, Seconds, ...
+        headerGpsWeek = int.tryParse(headerFields[5]);
+        headerGpsSeconds = double.tryParse(headerFields[6]);
       }
 
       switch (msgName) {
@@ -177,7 +183,7 @@ class BynavParser {
     if (body.length < 15) return null;
 
     final insStatus = body[0].trim();
-    final posType = body[1].trim();
+    final String? posType = body[1].trim().isEmpty ? null : body[1].trim();
     final lat = double.tryParse(body[2]);
     final lon = double.tryParse(body[3]);
     final height = double.tryParse(body[4]);
@@ -234,7 +240,7 @@ class BynavParser {
     if (body.length < 15) return null;
 
     final solStatus = body[0].trim();
-    final posType = body[1].trim();
+    final String? posType = body[1].trim().isEmpty ? null : body[1].trim();
     final lat = double.tryParse(body[2]);
     final lon = double.tryParse(body[3]);
     final height = double.tryParse(body[4]);
@@ -263,7 +269,8 @@ class BynavParser {
       verticalAccuracy: hgtStd,
       gpsWeek: headerWeek,
       gpsSeconds: headerSec,
-      posType: '$solStatus/$posType',
+      solutionStatus: solStatus,
+      posType: posType == null ? null : '$solStatus/$posType',
       satellitesUsed: satsUsed,
       correctionAge: diffAge,
     );

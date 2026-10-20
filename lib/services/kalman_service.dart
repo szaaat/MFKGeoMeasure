@@ -112,8 +112,9 @@ class GpsKalmanFilter {
   /// Frissíti a koordinátákat és visszaadja a szűrt értéket.
   List<double> filter(double lat, double lon, double accuracy) {
     if (!lat.isFinite || !lon.isFinite) return [lat, lon];
+    if (!accuracy.isFinite || accuracy <= 0 || accuracy >= 99.0) return [lat, lon]; // Ha a pontosság ismeretlen (NaN) vagy durván érvénytelen, bypassoljuk a szűrőt.
     
-    double safeAccuracy = accuracy.isFinite ? accuracy : 10.0;
+    double safeAccuracy = accuracy;
 
     // Ha még nincsenek szűrők, inicializáljuk őket a kezdőértékkel.
     _latFilter ??= KalmanFilter(initialValue: lat, measurementNoise: _mapAccuracyToR(safeAccuracy));

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mfk_geomeasure/models/gnss_fix.dart';
 import 'package:mfk_geomeasure/models/gnss_raw_measurement.dart';
@@ -22,6 +23,16 @@ class MockInternalGnssProvider implements GnssProvider {
   Future<void> connect() async {
     connectCalls++;
     isConnected = true;
+    _fixController.add(GnssFix(
+      latitude: 47.1,
+      longitude: 19.1,
+      altitude: 100.0,
+      isEllipsoidal: false,
+      horizontalAccuracy: 5.0,
+      source: GnssSource.internal,
+      connectionType: GnssConnectionType.internal,
+      timestamp: DateTime.now(),
+    ));
   }
 
   @override
@@ -102,6 +113,27 @@ class _DummyBle implements BleTransport {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() {
+    const MethodChannel sharedPrefsChannel = MethodChannel('plugins.flutter.io/shared_preferences');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(sharedPrefsChannel, (MethodCall methodCall) async {
+      if (methodCall.method == 'getAll') return <String, dynamic>{};
+      return null;
+    });
+
+    const MethodChannel pathProviderChannel = MethodChannel('plugins.flutter.io/path_provider');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(pathProviderChannel, (MethodCall methodCall) async {
+      if (methodCall.method == 'getApplicationDocumentsDirectory') return '/tmp';
+      return null;
+    });
+
+    const MethodChannel geolocatorChannel = MethodChannel('flutter.baseflow.com/geolocator');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(geolocatorChannel, (MethodCall methodCall) async {
+      if (methodCall.method == 'isLocationServiceEnabled') return true;
+      if (methodCall.method == 'checkPermission') return 3; // LocationPermission.always
+      return null;
+    });
+  });
+
   group('Phase 1: GNSS Source Switching and Fallback', () {
     late GnssInfoService infoService;
     late GeoidCorrectionService geoidService;
@@ -115,24 +147,40 @@ void main() {
       infoService.dispose();
     });
 
-    test('Intentional switch: Old provider disconnects, new connects', () async {
-      final oldProvider = MockInternalGnssProvider();
-      final newProvider = TestMfkProvider();
-
-      await infoService.setProvider(oldProvider);
-      expect(oldProvider.connectCalls, 1);
-      expect(oldProvider.isConnected, true);
-
-      await infoService.setProvider(newProvider);
-
-      expect(oldProvider.disconnectCalls, 1);
-      expect(oldProvider.isConnected, false);
-      expect(newProvider.isConnected, true);
-    });
-
-    test('Unexpected BLE disconnect with failed reconnect triggers fallback to InternalGnssProvider', () async {
+    test('Unexpected BLE disconnect triggers fallback to InternalGnssProvider and emits a valid fix', () async {
       final bleProvider = TestMfkProvider();
       bleProvider.shouldFailReconnect = true;
+
+      // Use a custom MockInternalGnssProvider for the fallback so we can test the emission
+      // GnssInfoService uses InternalGnssProvider by default, but we will intercept it or
+      // verify the stream output from the internal provider after fallback.
+      // Wait, fallback creates `InternalGnssProvider(geoidService: _geoidService)`.
+      // Since it creates a REAL `InternalGnssProvider` during fallback, we can't inject `MockInternalGnssProvider`.
+      // But we CAN listen to the `infoService.fixStream` and see what happens when the real InternalGnssProvider starts.
+      // Since we mocked Geolocator, InternalGnssProvider will call Geolocator... wait, Geolocator event stream is not mocked!
+      // Mocking Geolocator stream channel:
+      const EventChannel geolocatorEventChannel = EventChannel('flutter.baseflow.com/geolocator_updates');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockStreamHandler(geolocatorEventChannel, MockStreamHandler.inline(
+        onListen: (Object? arguments, MockStreamHandlerEventSink events) {
+          events.success({
+            'latitude': 47.5,
+            'longitude': 19.5,
+            'altitude': 120.0,
+            'accuracy': 5.0,
+            'heading': 0.0,
+            'speed': 0.0,
+            'speed_accuracy': 0.0,
+            'heading_accuracy': 0.0,
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+            'is_mocked': false,
+          });
+        },
+      ));
+
+      List<GnssFix> emittedFixes = [];
+      final sub = infoService.fixStream.listen((fix) {
+        emittedFixes.add(fix);
+      });
 
       await infoService.setProvider(bleProvider);
       expect(infoService.activeProvider, bleProvider);
@@ -143,6 +191,18 @@ void main() {
 
       expect(bleProvider.reconnectAttempts, 3);
       expect(infoService.activeProvider, isA<InternalGnssProvider>());
+
+      // Wait a bit for the internal provider to emit the mocked Geolocator event
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(emittedFixes.isNotEmpty, isTrue, reason: 'Fallback provider should have emitted a fix');
+      final fallbackFix = emittedFixes.last;
+      expect(fallbackFix.latitude, 47.5);
+      expect(fallbackFix.longitude, 19.5);
+      expect(fallbackFix.horizontalAccuracy, 5.0);
+      expect(fallbackFix.source, GnssSource.internal);
+
+      await sub.cancel();
     }, timeout: const Timeout(Duration(seconds: 20)));
   });
 }

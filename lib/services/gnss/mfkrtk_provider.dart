@@ -1,3 +1,6 @@
+import 'package:clock/clock.dart';
+import 'leap_seconds.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -50,9 +53,20 @@ class MfkRtkProvider implements GnssProvider {
   int? _lastSatsUsed;
   double? _lastCorrectionAge;
 
+  DateTime? _lastHorizAccTime;
+  DateTime? _lastVertAccTime;
+  DateTime? _lastPosTypeTime;
+  DateTime? _lastInsStatusTime;
+  DateTime? _lastHeadingTime;
+  DateTime? _lastPitchTime;
+  DateTime? _lastRollTime;
+  DateTime? _lastSatsUsedTime;
+  DateTime? _lastCorrectionAgeTime;
+
   // GPS epoch deduplication tracking
   int? _lastEmittedWeek;
   double? _lastEmittedSeconds;
+  final Set<String> _emittedMessagesInEpoch = {};
 
   MfkRtkProvider({required BleTransport transport}) : _transport = transport;
 
@@ -150,7 +164,8 @@ class MfkRtkProvider implements GnssProvider {
     await _transport.disconnect();
   }
 
-  // 🟢 6. sendConfigCommand() — TX log
+  /// Sends a text payload on the CONFIG characteristic. Completion confirms
+  /// only that the GATT write completed; it does not confirm firmware acceptance.
   Future<void> sendConfigCommand(String command) async {
     debugPrint('[MFKRTK] TX CONFIG: $command');
     _diagnosticEventController.add({
@@ -352,29 +367,148 @@ class MfkRtkProvider implements GnssProvider {
     }
   }
 
-  void _handleBynavSolution(BynavNavSolution sol) {
-    // 1. Always update metadata caches from Bynav messages
-    if (sol.heading != null) _lastHeading = sol.heading;
-    if (sol.pitch != null) _lastPitch = sol.pitch;
-    if (sol.roll != null) _lastRoll = sol.roll;
-    if (sol.insStatus != null) _lastInsStatus = sol.insStatus;
-    if (sol.posType != null) _lastPosType = sol.posType;
-    if (sol.satellitesUsed != null) _lastSatsUsed = sol.satellitesUsed;
-    if (sol.correctionAge != null) _lastCorrectionAge = sol.correctionAge;
+  DateTime? _gpsTimestamp(int? week, double? seconds, DateTime now) {
+    if (week == null ||
+        seconds == null ||
+        week < 0 ||
+        !seconds.isFinite ||
+        seconds < 0 ||
+        seconds >= 604800) {
+      return null;
+    }
 
-    // 2. Update accuracy cache if available (e.g. from INSPVAXA or BESTPOSA)
-    if (sol.horizontalAccuracy != null) _lastHorizAcc = sol.horizontalAccuracy;
-    if (sol.verticalAccuracy != null) _lastVertAcc = sol.verticalAccuracy;
+    final gpsEpoch = DateTime.utc(1980, 1, 6);
+    final latestPlausibleWeek =
+        now.difference(gpsEpoch).inDays ~/ 7 + 1;
+    if (week > latestPlausibleWeek) return null;
+
+    final gpsTime = gpsEpoch.add(Duration(
+      days: week * 7,
+      microseconds: (seconds * Duration.microsecondsPerSecond).round(),
+    ));
+    if (gpsTime.isAfter(now.add(const Duration(days: 1)))) return null;
+
+    return gpsTime.subtract(
+      Duration(seconds: LeapSeconds.getLeapSeconds(gpsTime)),
+    );
+  }
+
+  void _handleBynavSolution(BynavNavSolution sol) {
+    final now = clock.now();
+
+    // 1. Always update metadata caches independently from Bynav messages
+    if (sol.heading != null) {
+      _lastHeading = sol.heading;
+      _lastHeadingTime = now;
+    }
+    if (sol.pitch != null) {
+      _lastPitch = sol.pitch;
+      _lastPitchTime = now;
+    }
+    if (sol.roll != null) {
+      _lastRoll = sol.roll;
+      _lastRollTime = now;
+    }
+    if (sol.insStatus != null) {
+      _lastInsStatus = sol.insStatus;
+      _lastInsStatusTime = now;
+    }
+
+    if (sol.posType != null) {
+      _lastPosType = sol.posType;
+      _lastPosTypeTime = now;
+    } else if (sol.messageName.toUpperCase().contains('BESTPOS')) {
+      // BESTPOS without a position type must not inherit stale RTK metadata.
+      _lastPosType = null;
+      _lastPosTypeTime = null;
+    }
+
+    if (sol.satellitesUsed != null) {
+      _lastSatsUsed = sol.satellitesUsed;
+      _lastSatsUsedTime = now;
+    }
+
+    if (sol.correctionAge != null) {
+      _lastCorrectionAge = sol.correctionAge;
+      _lastCorrectionAgeTime = now;
+    }
+
+    // 2. Update accuracy cache independently if available
+    if (sol.horizontalAccuracy != null) {
+      _lastHorizAcc = sol.horizontalAccuracy;
+      _lastHorizAccTime = now;
+    }
+
+    if (sol.verticalAccuracy != null) {
+      _lastVertAcc = sol.verticalAccuracy;
+      _lastVertAccTime = now;
+    }
+
+    // 3. Clear stale caches (strictly older than 2 seconds)
+    const cacheExpiration = Duration(seconds: 2);
+
+    if (_lastHeadingTime != null && now.difference(_lastHeadingTime!) >= cacheExpiration) {
+      _lastHeading = null;
+      _lastHeadingTime = null;
+    }
+    if (_lastPitchTime != null && now.difference(_lastPitchTime!) >= cacheExpiration) {
+      _lastPitch = null;
+      _lastPitchTime = null;
+    }
+    if (_lastRollTime != null && now.difference(_lastRollTime!) >= cacheExpiration) {
+      _lastRoll = null;
+      _lastRollTime = null;
+    }
+    if (_lastInsStatusTime != null && now.difference(_lastInsStatusTime!) >= cacheExpiration) {
+      _lastInsStatus = null;
+      _lastInsStatusTime = null;
+    }
+    if (_lastPosTypeTime != null && now.difference(_lastPosTypeTime!) >= cacheExpiration) {
+      _lastPosType = null;
+      _lastPosTypeTime = null;
+    }
+    if (_lastSatsUsedTime != null && now.difference(_lastSatsUsedTime!) >= cacheExpiration) {
+      _lastSatsUsed = null;
+      _lastSatsUsedTime = null;
+    }
+    if (_lastCorrectionAgeTime != null && now.difference(_lastCorrectionAgeTime!) >= cacheExpiration) {
+      _lastCorrectionAge = null;
+      _lastCorrectionAgeTime = null;
+    }
+    if (_lastHorizAccTime != null && now.difference(_lastHorizAccTime!) >= cacheExpiration) {
+      _lastHorizAcc = null;
+      _lastHorizAccTime = null;
+    }
+    if (_lastVertAccTime != null && now.difference(_lastVertAccTime!) >= cacheExpiration) {
+      _lastVertAcc = null;
+      _lastVertAccTime = null;
+    }
 
     // Check epoch deduplication
-    final bool isSameEpoch = (sol.gpsWeek != null &&
+    // KOCKÁZAT: Ha BESTPOSA és INSPVAXA azonos epoch-al jön,
+    // meg kell őrizni mindkettőt, de kerülni kell a dupla BESTPOSA-t.
+    final bool isSameEpoch = sol.gpsWeek != null &&
         sol.gpsSeconds != null &&
         sol.gpsWeek == _lastEmittedWeek &&
-        (sol.gpsSeconds! - (_lastEmittedSeconds ?? -1.0)).abs() < 0.01);
+        (sol.gpsSeconds! - (_lastEmittedSeconds ?? -1.0)).abs() < 0.01;
 
-    if (isSameEpoch) return;
+    if (!isSameEpoch) {
+      _emittedMessagesInEpoch.clear();
+      _lastEmittedWeek = sol.gpsWeek;
+      _lastEmittedSeconds = sol.gpsSeconds;
+    }
+
+    if (_emittedMessagesInEpoch.contains(sol.messageName)) {
+      return; // Ebből a típusú üzenetből már küldtünk ebben az epochban
+    }
 
     if (sol.latitude == 0.0 && sol.longitude == 0.0) return;
+
+    // GPS Time vs Device Time latency measurement
+    final gnssTimestamp = _gpsTimestamp(sol.gpsWeek, sol.gpsSeconds, now);
+    final timestamp = gnssTimestamp ?? now;
+    final tSource =
+        gnssTimestamp == null ? TimestampSource.device : TimestampSource.gnss;
 
     final isEllipsoidal = sol.isEllipsoidalHeight;
     final ellipsoidalHeight =
@@ -389,8 +523,8 @@ class MfkRtkProvider implements GnssProvider {
       mslAltitude: isEllipsoidal && sol.undulation != null
           ? sol.altitude - sol.undulation!
           : sol.altitude,
-      horizontalAccuracy: sol.horizontalAccuracy ?? _lastHorizAcc ?? 0.0,
-      verticalAccuracy: sol.verticalAccuracy ?? _lastVertAcc ?? 0.0,
+      horizontalAccuracy: sol.horizontalAccuracy ?? _lastHorizAcc ?? 99.9,
+      verticalAccuracy: sol.verticalAccuracy ?? _lastVertAcc ?? 99.9,
       fixType: _mapPosTypeToFixType(sol.posType ?? _lastPosType),
       rtkStatus: _mapPosTypeToRtkStatus(sol.posType ?? _lastPosType),
       satellitesUsed: sol.satellitesUsed ?? _lastSatsUsed ?? 0,
@@ -399,16 +533,16 @@ class MfkRtkProvider implements GnssProvider {
       pitch: sol.pitch ?? _lastPitch,
       roll: sol.roll ?? _lastRoll,
       insStatus: sol.insStatus ?? _lastInsStatus,
-      positionSource: sol.posType ?? _lastPosType ?? sol.messageName,
+      positionSource: sol.posType ?? _lastPosType ?? sol.solutionStatus ?? sol.messageName,
       source: GnssSource.external,
       receiverName: "MFKRTK",
       connectionType: GnssConnectionType.ble,
-      timestamp: DateTime.now(),
+      timestamp: timestamp,
+      timestampSource: tSource,
       referenceFrame: GnssReferenceFrame.unknown,
     );
 
-    _lastEmittedWeek = sol.gpsWeek;
-    _lastEmittedSeconds = sol.gpsSeconds;
+    _emittedMessagesInEpoch.add(sol.messageName);
     _fixController.add(fix);
   }
 
@@ -718,7 +852,7 @@ class MfkRtkProvider implements GnssProvider {
   }
 
   GnssFixType _mapPosTypeToFixType(String? posType) {
-    if (posType == null) return GnssFixType.autonomous;
+    if (posType == null) return GnssFixType.none;
     final upper = posType.toUpperCase();
     if (upper.contains('RTK') ||
         upper.contains('NARROW') ||

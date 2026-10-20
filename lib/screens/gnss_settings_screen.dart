@@ -468,6 +468,13 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
                         alignment: Alignment.centerRight,
                         child: Text('${_headingDegrees.toStringAsFixed(1)}°', style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
+                      const Text(
+                        'A CONFIG-parancsok BLE-írása csak az elküldést igazolja. '
+                        'A SET_HEADING, INS_RESTART, GET_RTCM_STATUS, '
+                        'M21_CONFIGURE_INS és M21_SAVE_CONFIG firmware-támogatása '
+                        'még ellenőrizendő.',
+                        style: TextStyle(fontSize: 12, color: Colors.deepOrange),
+                      ),
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,

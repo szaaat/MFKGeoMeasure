@@ -211,6 +211,7 @@ class GnssInfoService extends ChangeNotifier {
   MfkRtkNavData? _lastMfkNavData;
   String? _rtcmAlert;
   String? _lastMfkConfigMessage;
+  InternalGnssError? _internalGnssError;
   bool _rtcmAlertDismissed = false;
   RtcmService? _rtcmService;
   
@@ -278,6 +279,7 @@ class GnssInfoService extends ChangeNotifier {
   MfkRtkRtcmStatus? get mfkRtkRtcmStatus => _activeProvider is MfkRtkProvider ? (_activeProvider as MfkRtkProvider).lastRtcmStatus : null;
   String? get rtcmAlert => _rtcmAlertDismissed ? null : _rtcmAlert;
   String? get lastMfkConfigMessage => _lastMfkConfigMessage;
+  InternalGnssError? get internalGnssError => _internalGnssError;
   bool get isMfkRtkActive => _activeProvider is MfkRtkProvider;
   bool get isMfkRtkConnected => !isMfkRtkActive || _mfkConnected;
   Stream<GnssFix> get fixStream => _fixStreamController.stream;
@@ -413,6 +415,7 @@ class GnssInfoService extends ChangeNotifier {
     _isStableRtkFix = false; 
     
     _activeProvider = provider;
+    _internalGnssError = null;
     _mfkConnected = provider is! MfkRtkProvider;
     
     // Attach logger and OTA service if MFKRTK
@@ -639,6 +642,11 @@ class GnssInfoService extends ChangeNotifier {
       if (identical(_activeProvider, provider)) {
         debugPrint("Provider connection error: $e");
         _lastMfkConfigMessage = 'Hiba a GNSS indításakor: $e';
+        if (provider is InternalGnssProvider) {
+          _internalGnssError = e is InternalGnssException
+              ? e.error
+              : InternalGnssError.unavailable;
+        }
         _mfkConnected = false;
       }
     }
@@ -944,6 +952,7 @@ class GnssInfoService extends ChangeNotifier {
   }
 
   double _calculateQuality(double accuracy, double speed, int sats) {
+    if (!accuracy.isFinite || accuracy <= 0 || accuracy >= 99.0) return 0.0;
     double score = 0;
     score += max(0, 40 - (accuracy * 4));
     score += min(40, max(0, (sats - 4) * 5));

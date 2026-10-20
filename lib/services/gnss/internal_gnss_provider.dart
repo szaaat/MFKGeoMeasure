@@ -9,6 +9,22 @@ import 'package:mfk_geomeasure/services/gnss/gnss_provider.dart';
 import 'package:flutter/foundation.dart';
 import '../geoid_service.dart';
 
+enum InternalGnssError {
+  locationServicesDisabled,
+  permissionDenied,
+  permissionDeniedForever,
+  unavailable,
+}
+
+class InternalGnssException implements Exception {
+  final InternalGnssError error;
+
+  const InternalGnssException(this.error);
+
+  @override
+  String toString() => 'Internal GNSS unavailable: ${error.name}';
+}
+
 class InternalGnssProvider implements GnssProvider {
   final _fixController = StreamController<GnssFix>.broadcast();
   final _rawMeasurementController =
@@ -47,19 +63,27 @@ class InternalGnssProvider implements GnssProvider {
 
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw Exception("Location services are disabled.");
+      throw const InternalGnssException(
+        InternalGnssError.locationServicesDisabled,
+      );
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.unableToDetermine) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception("Location permissions are denied.");
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.unableToDetermine) {
+        throw const InternalGnssException(
+          InternalGnssError.permissionDenied,
+        );
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception("Location permissions are permanently denied.");
+      throw const InternalGnssException(
+        InternalGnssError.permissionDeniedForever,
+      );
     }
 
     if (Platform.isIOS) {
