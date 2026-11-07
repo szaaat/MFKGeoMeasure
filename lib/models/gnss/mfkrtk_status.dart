@@ -25,6 +25,13 @@ class MfkRtkStatus {
   final int? rtcmAgeMs;
   final int? rtcmBytes;
   final int? rtcmPkts;
+  final String? autoInsState;
+  final String? alignmentMode;
+  final bool? alignmentTrialRequested;
+  final bool? alignmentTrialCommandRejected;
+  final String? autoInsError;
+  final String? insAlignFull;
+  final bool? measurementReady;
 
   MfkRtkStatus({
     required this.firmwareVersion,
@@ -51,6 +58,13 @@ class MfkRtkStatus {
     this.rtcmAgeMs,
     this.rtcmBytes,
     this.rtcmPkts,
+    this.autoInsState,
+    this.alignmentMode,
+    this.alignmentTrialRequested,
+    this.alignmentTrialCommandRejected,
+    this.autoInsError,
+    this.insAlignFull,
+    this.measurementReady,
   });
 
   factory MfkRtkStatus.fromJson(Map<String, dynamic> json, {MfkRtkStatus? previousStatus}) {
@@ -123,26 +137,52 @@ class MfkRtkStatus {
       batteryPercentage: pct,
       bleConnected: json['ble_connected'] as bool? ?? json['ble_conn'] as bool? ?? previousStatus?.bleConnected ?? false,
       otaState: parsedOta,
-      gnssFix: json['gnss_fix']?.toString() ?? json['gnss_fix_type']?.toString() ?? previousStatus?.gnssFix,
-      rtkStatus: json['rtk_stat']?.toString() ?? json['rtk_status']?.toString() ?? previousStatus?.rtkStatus,
+      gnssFix: json['gnss_fix']?.toString() ?? json['gnss_fix_type']?.toString(),
+      rtkStatus: json['rtk_stat']?.toString() ?? json['rtk_status']?.toString(),
       satellites: _intValue(json['satellites']) ?? _intValue(json['sats']) ?? previousStatus?.satellites,
       hdop: (json['hdop'] as num?)?.toDouble() ?? previousStatus?.hdop,
       latitude: (json['latitude'] as num?)?.toDouble() ?? (json['lat'] as num?)?.toDouble() ?? previousStatus?.latitude,
       longitude: (json['longitude'] as num?)?.toDouble() ?? (json['lon'] as num?)?.toDouble() ?? previousStatus?.longitude,
       altitude: (json['altitude'] as num?)?.toDouble() ?? (json['alt'] as num?)?.toDouble() ?? previousStatus?.altitude,
-      insStatus: json['ins_align']?.toString() ?? json['ins_status']?.toString() ?? json['ins_stat']?.toString() ?? previousStatus?.insStatus,
-      insAlign: json['ins_align']?.toString() ?? json['ins_status']?.toString() ?? json['ins_stat']?.toString() ?? previousStatus?.insAlign,
-      positionSource: json['position_source']?.toString() ?? json['pos_src']?.toString() ?? previousStatus?.positionSource,
-      posType: json['pos_type']?.toString() ?? json['rtk_status']?.toString() ?? json['rtk_stat']?.toString() ?? previousStatus?.posType,
-      rtcmOk: json['rtcm_ok'] as bool? ?? previousStatus?.rtcmOk,
-      rtcmAgeMs: _intValue(json['rtcm_age_ms']) ?? previousStatus?.rtcmAgeMs,
-      rtcmBytes: _intValue(json['rtcm_bytes']) ?? previousStatus?.rtcmBytes,
-      rtcmPkts: _intValue(json['rtcm_pkts']) ?? previousStatus?.rtcmPkts,
-      roll: (json['roll'] as num?)?.toDouble() ?? previousStatus?.roll,
-      pitch: (json['pitch'] as num?)?.toDouble() ?? previousStatus?.pitch,
-      heading: (json['heading'] as num?)?.toDouble() ?? (json['hdg'] as num?)?.toDouble() ?? previousStatus?.heading,
-      correctionAge: (json['correction_age'] as num?)?.toDouble() ?? (json['corr_age'] as num?)?.toDouble() ?? previousStatus?.correctionAge,
+      insStatus: json['ins_align']?.toString() ?? json['ins_status']?.toString() ?? json['ins_stat']?.toString(),
+      insAlign: json['ins_align']?.toString() ?? json['ins_status']?.toString() ?? json['ins_stat']?.toString(),
+      positionSource: json['position_source']?.toString() ?? json['pos_src']?.toString(),
+      posType: json['pos_type']?.toString(),
+      rtcmOk: json['rtcm_ok'] as bool?,
+      rtcmAgeMs: _intValue(json['rtcm_age_ms']),
+      rtcmBytes: _intValue(json['rtcm_bytes']),
+      rtcmPkts: _intValue(json['rtcm_pkts']),
+      roll: (json['roll'] as num?)?.toDouble(),
+      pitch: (json['pitch'] as num?)?.toDouble(),
+      heading: (json['heading'] as num?)?.toDouble() ?? (json['hdg'] as num?)?.toDouble(),
+      correctionAge: (json['correction_age'] as num?)?.toDouble() ?? (json['corr_age'] as num?)?.toDouble(),
+      autoInsState: json['auto_ins_state']?.toString(),
+      alignmentMode: json['alignment_mode']?.toString(),
+      alignmentTrialRequested: _boolValue(json['alignment_trial_requested']),
+      alignmentTrialCommandRejected:
+          _boolValue(json['alignment_trial_command_rejected']),
+      autoInsError: json['auto_ins_error']?.toString(),
+      insAlignFull: json['ins_align_full']?.toString(),
+      measurementReady: _boolValue(json['measurement_ready']),
     );
+  }
+
+  static bool? _boolValue(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      switch (value.trim().toLowerCase()) {
+        case 'true':
+        case '1':
+        case 'yes':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+          return false;
+      }
+    }
+    return null;
   }
 
   static int? _intValue(dynamic value) {

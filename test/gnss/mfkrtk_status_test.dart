@@ -90,6 +90,28 @@ void main() {
       expect(updatedStatus.rtcmOk, isTrue);
     });
 
+    test('Parses v0.3.0 automatic INS state and fail-closed flags', () {
+      final status = MfkRtkStatus.fromJson({
+        'auto_ins_state': 'ALIGN_TRIAL_RUNNING',
+        'alignment_mode': 'ALIGN_TRIAL_EXPERIMENTAL',
+        'alignment_trial_requested': 'true',
+        'alignment_trial_command_rejected': false,
+        'auto_ins_error': '',
+        'ins_align': 'ALIGN_TRIAL_UNVERIFIED',
+        'ins_align_full': 'INS_SOLUTION_GOOD',
+        'measurement_ready': false,
+      });
+
+      expect(status.autoInsState, 'ALIGN_TRIAL_RUNNING');
+      expect(status.alignmentMode, 'ALIGN_TRIAL_EXPERIMENTAL');
+      expect(status.alignmentTrialRequested, isTrue);
+      expect(status.alignmentTrialCommandRejected, isFalse);
+      expect(status.autoInsError, '');
+      expect(status.insAlign, 'ALIGN_TRIAL_UNVERIFIED');
+      expect(status.insAlignFull, 'INS_SOLUTION_GOOD');
+      expect(status.measurementReady, isFalse);
+    });
+
     test('Calculates battery percentage from voltage when raw percentage is absent', () {
       final json = {"v_bat": 3.97};
       final status = MfkRtkStatus.fromJson(json);

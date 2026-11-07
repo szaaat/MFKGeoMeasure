@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_compass/flutter_compass.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart' as btc;
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as ble;
@@ -20,6 +19,7 @@ import '../services/gnss/rtcm_service.dart';
 import '../services/gnss/ntrip_client.dart';
 import '../models/gnss_fix.dart';
 import '../models/gnss/mfkrtk_constants.dart';
+import '../models/gnss/mfkrtk_readiness.dart';
 import '../models/ntrip_profile.dart';
 import '../models/ntrip_source.dart';
 import '../models/ntrip_diagnostics.dart';
@@ -27,6 +27,7 @@ import '../l10n/app_localizations.dart';
 import 'mfkrtk_diagnostics_screen.dart';
 import 'mfkrtk_ota_screen.dart' as hu;
 import '../services/geoid_service.dart';
+import '../widgets/sbas_info_card.dart';
 
 class GnssSettingsScreen extends StatefulWidget {
   const GnssSettingsScreen({super.key});
@@ -42,7 +43,6 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
   bool _isScanning = false;
   bool _autoConnectInProgress = false;
   bool _sendingMfkCommand = false;
-  double _headingDegrees = 0;
   StreamSubscription? _bleScanSubscription;
   String? _savedMfkDeviceId;
 
@@ -91,21 +91,6 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
       );
     } finally {
       if (mounted) setState(() => _sendingMfkCommand = false);
-    }
-  }
-
-  Future<void> _readPhoneHeading() async {
-    try {
-      final event = await FlutterCompass.events?.first.timeout(const Duration(seconds: 3));
-      final heading = event?.heading;
-      if (heading != null && heading.isFinite && mounted) {
-        setState(() => _headingDegrees = (heading % 360 + 360) % 360);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Az iránytű nem érhető el: $error')),
-      );
     }
   }
 
@@ -318,6 +303,7 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
               ),
             ],
             const Divider(),
+            const SbasInfoCard(),
             _buildMfkRtkStatusCard(context.watch<GnssInfoService>()),
             _buildNtripSection(l10n),
           ],
@@ -325,6 +311,41 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
       ),
     );
   }
+
+  String _receiverEventLabel(String message) {
+    final normalized = message.toUpperCase();
+    if (normalized.contains('HEADING_IGNORED_AUTO_INS_TRIAL_UNVERIFIED')) {
+      return 'A firmware figyelmen kívül hagyta a kézi irányt: az automatikus próba azimutja nincs igazolva.';
+    }
+    if (normalized.contains('INS_RESTART_BLOCKED_AUTO_INIT')) {
+      return 'A firmware blokkolta az INS_RESTART parancsot; az automatikus inicializálás kezeli az INS-t.';
+    }
+    if (normalized.contains('AUTO_INS_RETRY')) {
+      return 'A firmware AUTO_INS_RETRY eseményt jelzett; a vevőállapot visszaolvasása folyamatban.';
+    }
+    if (normalized.contains('AUTO_INS_STATUS')) {
+      return 'A firmware automatikus INS-állapotot jelzett; a NAV_DATA/DEVICE_STATUS adatok következnek.';
+    }
+    return message;
+  }
+
+  String _measurementStateLabel(MfkRtkMeasurementState state) => switch (state) {
+        MfkRtkMeasurementState.configurationError =>
+          'Konfigurációs hiba történt',
+        MfkRtkMeasurementState.autoInsConfiguring =>
+          'INS konfigurálás folyamatban',
+        MfkRtkMeasurementState.waitingRtk => 'RTK FIX / RTCM-re vár',
+        MfkRtkMeasurementState.rtcmLost => 'RTCM korrekció nem friss',
+        MfkRtkMeasurementState.waitingHeading => 'Érvényes irányadatra vár',
+        MfkRtkMeasurementState.autoInsTrial =>
+          'Automatikus igazítási próba fut',
+        MfkRtkMeasurementState.insSolutionUnverified =>
+          'INS_SOLUTION_GOOD jelentve, azimut nincs igazolva',
+        MfkRtkMeasurementState.waitingInsAlign => 'INS megoldásra vár',
+        MfkRtkMeasurementState.insAlignmentComplete =>
+          'Alap igazítás kész; INS_SOLUTION_GOOD szükséges',
+        MfkRtkMeasurementState.readyToMeasure => 'Mérésre kész',
+      };
 
   Widget _buildMfkRtkStatusCard(GnssInfoService gnssService) {
     final l10n = AppLocalizations.of(context)!;
@@ -434,7 +455,14 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
                 _diagRow(l10n.firmwareVersion, status.firmwareVersion),
               if (lastFix != null) ...[
                 _diagRow(l10n.positionSource, lastFix.positionSource ?? "N/A"),
-                _diagRow(l10n.insStatus, lastFix.insStatus ?? "N/A", color: lastFix.isInsGood ? Colors.green : Colors.orange),
+                _diagRow(
+                  l10n.insStatus,
+                  lastFix.insStatus ?? "N/A",
+                  color: gnssService.mfkRtkMeasurementState ==
+                          MfkRtkMeasurementState.readyToMeasure
+                      ? Colors.green
+                      : Colors.orange,
+                ),
                 _diagRow(l10n.rtkStatusLabel, lastFix.rtkStatus.name.toUpperCase(), color: lastFix.rtkStatus == RtkStatus.fixed ? Colors.green : Colors.orange),
                 if (lastFix.heading != null) _diagRow("Heading (M21)", "${lastFix.heading!.toStringAsFixed(1)}°"),
                 if (lastFix.pitch != null && lastFix.roll != null)
@@ -456,50 +484,41 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
                       Text('RTCM: ${rtcmOk ? 'OK' : (rtcmAgeMs < 0 ? l10n.noData : 'Timeout')}'
                           ' · ${l10n.age} ${rtcmAgeMs < 0 ? '—' : '${(rtcmAgeMs / 1000).toStringAsFixed(1)} s'}'),
                       Text('${l10n.packets} $rtcmPkts · ${l10n.bytes} $rtcmBytes'),
-                      Slider(
-                        value: _headingDegrees.clamp(0, 360),
-                        min: 0,
-                        max: 360,
-                        divisions: 360,
-                        label: '${_headingDegrees.toStringAsFixed(0)}°',
-                        onChanged: (value) => setState(() => _headingDegrees = value),
+                      Text(
+                        _measurementStateLabel(gnssService.mfkRtkMeasurementState),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: gnssService.mfkRtkMeasurementState ==
+                                  MfkRtkMeasurementState.readyToMeasure
+                              ? Colors.green.shade800
+                              : Colors.deepOrange.shade800,
+                        ),
                       ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text('${_headingDegrees.toStringAsFixed(1)}°', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ),
+                      if (nav?.autoInsState != null || status?.autoInsState != null)
+                        _diagRow(
+                          'Auto INS',
+                          nav?.autoInsState ?? status!.autoInsState!,
+                        ),
+                      if (nav?.alignmentMode != null || status?.alignmentMode != null)
+                        _diagRow(
+                          'Alignment mode',
+                          nav?.alignmentMode ?? status!.alignmentMode!,
+                        ),
+                      if (nav?.insAlignFull != null || status?.insAlignFull != null)
+                        _diagRow(
+                          'INS reported',
+                          nav?.insAlignFull ?? status!.insAlignFull!,
+                        ),
+                      if (nav?.autoInsError != null || status?.autoInsError != null)
+                        _diagRow(
+                          'Auto INS error',
+                          nav?.autoInsError ?? status!.autoInsError!,
+                          color: Colors.red,
+                        ),
                       const Text(
-                        'A CONFIG-parancsok BLE-írása csak az elküldést igazolja. '
-                        'A SET_HEADING, INS_RESTART, GET_RTCM_STATUS, '
-                        'M21_CONFIGURE_INS és M21_SAVE_CONFIG firmware-támogatása '
-                        'még ellenőrizendő.',
-                        style: TextStyle(fontSize: 12, color: Colors.deepOrange),
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          TextButton.icon(
-                            onPressed: _readPhoneHeading,
-                            icon: const Icon(Icons.explore),
-                            label: Text(l10n.compass),
-                          ),
-                          FilledButton.icon(
-                            onPressed: !_sendingMfkCommand
-                                ? () => _runMfkCommand(gnssService, 'SET HEADING', (provider) => provider.setHeading(_headingDegrees))
-                                : null,
-                            icon: const Icon(Icons.explore_outlined),
-                            label: const Text('SET HEADING'),
-                          ),
-                          FilledButton.tonalIcon(
-                            onPressed: _sendingMfkCommand
-                                ? null
-                                : () => _runMfkCommand(gnssService, 'INS RESTART', (provider) => provider.restartIns()),
-                            icon: const Icon(Icons.restart_alt),
-                            label: const Text('INS RESTART'),
-                            style: FilledButton.styleFrom(foregroundColor: Colors.deepOrange),
-                          ),
-                        ],
+                        'Azimutot és INS újraindítást az alkalmazás nem küld automatikusan. '
+                        'A mérési kész állapotot a friss vevőadatok igazolják.',
+                        style: TextStyle(fontSize: 12, color: Colors.blueGrey),
                       ),
                       Wrap(
                         spacing: 8,
@@ -520,7 +539,9 @@ class _GnssSettingsScreenState extends State<GnssSettingsScreen> {
                       ),
                       if (gnssService.lastMfkConfigMessage != null)
                         Text(
-                          l10n.receiverResponse(gnssService.lastMfkConfigMessage!),
+                          _receiverEventLabel(
+                            l10n.receiverResponse(gnssService.lastMfkConfigMessage!),
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 11, color: Colors.blueGrey),

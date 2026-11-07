@@ -13,6 +13,8 @@ import 'gnss_provider.dart';
 import 'ble_transport.dart';
 import 'nmea_parser.dart';
 import 'bynav_parser.dart';
+import 'mfkrtk_diagnostics_logger.dart';
+import 'package:uuid/uuid.dart';
 
 class MfkRtkProvider implements GnssProvider {
   final BleTransport _transport;
@@ -164,6 +166,11 @@ class MfkRtkProvider implements GnssProvider {
     await _transport.disconnect();
   }
 
+  /// Adds a timestamped diagnostic event to the provider event stream.
+  void recordDiagnosticEvent(String event, Map<String, dynamic> fields) {
+    _diagnosticEventController.add({'event': event, ...fields});
+  }
+
   /// Sends a text payload on the CONFIG characteristic. Completion confirms
   /// only that the GATT write completed; it does not confirm firmware acceptance.
   Future<void> sendConfigCommand(String command) async {
@@ -307,28 +314,98 @@ class MfkRtkProvider implements GnssProvider {
         try {
           String line = utf8.decode(frame, allowMalformed: true).trim();
           if (line.isNotEmpty) {
-            _processLine(line);
+            final msgId = const Uuid().v4();
+            MfkRtkDiagnosticsLogger().recordEvent(
+              'frame_extracted',
+              {
+                'raw_line': line,
+                'length': frame.length,
+                'type': line.startsWith('#') || line.startsWith('%') ? 'bynav' : (line.startsWith(r'$') ? 'nmea' : (line.startsWith('{') ? 'json' : 'unknown')),
+              },
+              messageId: msgId,
+            );
+            _processLine(line, msgId);
           }
-        } catch (_) {}
+        } catch (e) {
+          MfkRtkDiagnosticsLogger().recordEvent(
+            'frame_error',
+            {
+              'length': frame.length,
+              'bytes_base64': base64Encode(frame),
+            },
+            error: e.toString(),
+          );
+        }
       } else {
         break;
       }
     }
   }
 
-  void _processLine(String line) {
+  void _processLine(String line, String messageId) {
     if (line.startsWith('#') || line.startsWith('%')) {
       final solution = _bynavParser.parse(line);
       if (solution != null) {
-        _handleBynavSolution(solution);
+        MfkRtkDiagnosticsLogger().recordEvent(
+          'parsed_gnss',
+          {
+            'parser': 'BynavParser',
+            'msg_type': solution.messageName,
+            'lat': solution.latitude,
+            'lon': solution.longitude,
+            'alt': solution.altitude,
+            'undulation': solution.undulation,
+            'heading': solution.heading,
+            'pitch': solution.pitch,
+            'roll': solution.roll,
+            'ins_status': solution.insStatus,
+            'pos_type': solution.posType,
+            'horizontal_accuracy': solution.horizontalAccuracy,
+            'vertical_accuracy': solution.verticalAccuracy,
+            'gps_week': solution.gpsWeek,
+            'gps_seconds': solution.gpsSeconds,
+            'satellites_used': solution.satellitesUsed,
+          },
+          messageId: messageId,
+        );
+        _handleBynavSolution(solution, messageId);
+      } else {
+        MfkRtkDiagnosticsLogger().recordEvent(
+          'parse_error',
+          {'parser': 'BynavParser', 'raw_line': line},
+          messageId: messageId,
+          status: 'error',
+          error: 'Bynav parse failed',
+        );
       }
     } else if (line.startsWith('\$')) {
-      _handleNmeaSentence(line);
+      _handleNmeaSentence(line, messageId);
     } else if (line.startsWith('{')) {
       try {
         final decoded = jsonDecode(line);
         if (decoded is Map<String, dynamic>) {
-          if (decoded.containsKey('battery_percent') ||
+          final isNavPayload = decoded.containsKey('v') ||
+              decoded.containsKey('source') ||
+              decoded.containsKey('fix') ||
+              decoded.containsKey('pos_type') ||
+              decoded.containsKey('lat') ||
+              decoded.containsKey('lon') ||
+              decoded.containsKey('h');
+          final isAutoInsEvent =
+              decoded['event'] == 'auto_ins_state' ||
+                  decoded['type'] == 'auto_ins_state';
+          final isReceiverStatusPayload = isAutoInsEvent ||
+              decoded.containsKey('auto_ins_state') ||
+              decoded.containsKey('alignment_mode') ||
+              decoded.containsKey('alignment_trial_requested') ||
+              decoded.containsKey('alignment_trial_command_rejected') ||
+              decoded.containsKey('auto_ins_error') ||
+              decoded.containsKey('ins_align_full') ||
+              decoded.containsKey('measurement_ready');
+          if (isNavPayload) {
+            _lastNavData = MfkRtkNavData.fromJson(decoded);
+            _navDataController.add(_lastNavData!);
+          } else if (decoded.containsKey('battery_percent') ||
               decoded.containsKey('battery_percentage') ||
               decoded.containsKey('bat_p') ||
               decoded.containsKey('bat_pct') ||
@@ -350,15 +427,16 @@ class MfkRtkProvider implements GnssProvider {
               decoded.containsKey('volts') ||
               decoded.containsKey('firmware') ||
               decoded.containsKey('fw_ver') ||
-              decoded.containsKey('fw')) {
-            _lastStatus =
-                MfkRtkStatus.fromJson(decoded, previousStatus: _lastStatus);
-            _statusController.add(_lastStatus!);
-          } else if (decoded.containsKey('v') ||
-              decoded.containsKey('ins_align') ||
-              decoded.containsKey('pos_type')) {
-            _lastNavData = MfkRtkNavData.fromJson(decoded);
-            _navDataController.add(_lastNavData!);
+              decoded.containsKey('fw') ||
+              isReceiverStatusPayload) {
+            final statusPayload = Map<String, dynamic>.from(decoded);
+            if (isAutoInsEvent) {
+              statusPayload.putIfAbsent(
+                'auto_ins_state',
+                () => decoded['state'] ?? decoded['value'] ?? 'UNKNOWN',
+              );
+            }
+            _emitReceiverStatus(statusPayload);
           }
         }
       } catch (e) {
@@ -393,7 +471,7 @@ class MfkRtkProvider implements GnssProvider {
     );
   }
 
-  void _handleBynavSolution(BynavNavSolution sol) {
+  void _handleBynavSolution(BynavNavSolution sol, String messageId) {
     final now = clock.now();
 
     // 1. Always update metadata caches independently from Bynav messages
@@ -543,19 +621,71 @@ class MfkRtkProvider implements GnssProvider {
     );
 
     _emittedMessagesInEpoch.add(sol.messageName);
+    
+    final fixId = const Uuid().v4();
+    MfkRtkDiagnosticsLogger().recordEvent(
+      'fused_fix',
+      {
+        'fix_type': fix.fixType.name,
+        'rtk_status': fix.rtkStatus.name,
+        'ins_status': fix.insStatus,
+        'heading': fix.heading,
+        'pitch': fix.pitch,
+        'roll': fix.roll,
+        'lat': fix.latitude,
+        'lon': fix.longitude,
+        'alt': fix.altitude,
+        'ellipsoidal_height': fix.ellipsoidalHeight,
+        'is_ellipsoidal': fix.isEllipsoidal,
+        'cache_used': true, // Simplified
+        'pos_type': sol.posType ?? _lastPosType,
+        'satellites_used': fix.satellitesUsed,
+        'age': fix.correctionAge,
+      },
+      messageId: messageId,
+      fixId: fixId,
+    );
+    
     _fixController.add(fix);
   }
 
-  void _handleNmeaSentence(String sentence) {
+  void _handleNmeaSentence(String sentence, String messageId) {
     if (sentence.contains('GGA')) {
       _ggaController.add(sentence);
     }
-
-    // If INS is GOOD or BESTPOSA fix was already emitted, don't emit tertiary NMEA position fix
-    if (_lastInsStatus == 'INS_SOLUTION_GOOD') return;
-
+    
     final fix = _nmeaParser.parse(sentence,
         source: GnssSource.external, connectionType: GnssConnectionType.ble);
+        
+    if (fix != null) {
+        MfkRtkDiagnosticsLogger().recordEvent(
+          'parsed_gnss',
+          {
+            'parser': 'NmeaParser',
+            'msg_type': sentence.substring(3, 6),
+            'lat': fix.latitude,
+            'lon': fix.longitude,
+            'alt': fix.altitude,
+            'msl_altitude': fix.mslAltitude,
+            'geoid_separation': fix.geoidSeparation,
+            'horizontal_accuracy': fix.horizontalAccuracy,
+            'fix_type': fix.fixType.name,
+            'rtk_status': fix.rtkStatus.name,
+            'satellites_used': fix.satellitesUsed,
+          },
+          messageId: messageId,
+        );
+    }
+
+    // If INS is GOOD or BESTPOSA fix was already emitted, don't emit tertiary NMEA position fix
+    if (_lastInsStatus == 'INS_SOLUTION_GOOD') {
+        MfkRtkDiagnosticsLogger().recordEvent(
+          'fused_fix_skipped',
+          {'reason': 'INS_SOLUTION_GOOD priority'},
+          messageId: messageId,
+        );
+        return;
+    }
 
     if (fix != null) {
       final enrichedFix = GnssFix(
@@ -590,6 +720,27 @@ class MfkRtkProvider implements GnssProvider {
         timestampSource: fix.timestampSource,
         referenceFrame: fix.referenceFrame,
         referenceEpoch: fix.referenceEpoch,
+      );
+      final fixId = const Uuid().v4();
+      MfkRtkDiagnosticsLogger().recordEvent(
+        'fused_fix',
+        {
+          'fix_type': enrichedFix.fixType.name,
+          'rtk_status': enrichedFix.rtkStatus.name,
+          'ins_status': enrichedFix.insStatus,
+          'heading': enrichedFix.heading,
+          'pitch': enrichedFix.pitch,
+          'roll': enrichedFix.roll,
+          'lat': enrichedFix.latitude,
+          'lon': enrichedFix.longitude,
+          'alt': enrichedFix.altitude,
+          'msl_altitude': enrichedFix.mslAltitude,
+          'is_ellipsoidal': enrichedFix.isEllipsoidal,
+          'cache_used': _lastHeading != null || _lastPitch != null || _lastRoll != null || _lastInsStatus != null,
+          'pos_type': _lastPosType,
+        },
+        messageId: messageId,
+        fixId: fixId,
       );
       _fixController.add(enrichedFix);
     }
@@ -727,9 +878,24 @@ class MfkRtkProvider implements GnssProvider {
     return -1;
   }
 
+  bool _containsAutoInsFields(Map<String, dynamic> decoded) =>
+      decoded.containsKey('auto_ins_state') ||
+      decoded.containsKey('alignment_mode') ||
+      decoded.containsKey('alignment_trial_requested') ||
+      decoded.containsKey('alignment_trial_command_rejected') ||
+      decoded.containsKey('auto_ins_error') ||
+      decoded.containsKey('ins_align_full') ||
+      decoded.containsKey('measurement_ready');
+
+  void _emitReceiverStatus(Map<String, dynamic> decoded) {
+    _lastStatus =
+        MfkRtkStatus.fromJson(decoded, previousStatus: _lastStatus);
+    _statusController.add(_lastStatus!);
+  }
+
   void _handleConfigJson(dynamic decoded) {
     if (decoded is! Map<String, dynamic>) return;
-    final type = decoded['type']?.toString();
+    final type = (decoded['type'] ?? decoded['event'])?.toString();
 
     if (type == 'm21_rx_chunk') {
       final messageId = (decoded['message_id'] as num?)?.toInt();
@@ -763,8 +929,42 @@ class MfkRtkProvider implements GnssProvider {
       final message = decoded['line']?.toString() ??
           decoded['command']?.toString() ??
           jsonEncode(decoded);
+      if (type == 'm21_rx' && message.trim().startsWith('{')) {
+        try {
+          final payload = jsonDecode(message);
+          if (payload is Map<String, dynamic> &&
+              (_containsAutoInsFields(payload) ||
+                  payload['event'] == 'auto_ins_state' ||
+                  payload['type'] == 'auto_ins_state')) {
+            final statusPayload = Map<String, dynamic>.from(payload);
+            final isAutoInsEvent = payload['event'] == 'auto_ins_state' ||
+                payload['type'] == 'auto_ins_state';
+            if (isAutoInsEvent) {
+              statusPayload.putIfAbsent(
+                'auto_ins_state',
+                () => payload['state'] ?? payload['value'] ?? 'UNKNOWN',
+              );
+            }
+            _emitReceiverStatus(statusPayload);
+          }
+        } catch (_) {
+          // Preserve malformed diagnostic lines in the CONFIG event stream.
+        }
+      }
       debugPrint('[MFKRTK][DIAGNOSTIC] $message');
       _configMessageController.add(message);
+      return;
+    }
+
+    if (type == 'auto_ins_state' || _containsAutoInsFields(decoded)) {
+      final statusPayload = Map<String, dynamic>.from(decoded);
+      if (type == 'auto_ins_state' &&
+          !statusPayload.containsKey('auto_ins_state')) {
+        statusPayload['auto_ins_state'] =
+            decoded['state'] ?? decoded['value'] ?? 'UNKNOWN';
+      }
+      _emitReceiverStatus(statusPayload);
+      _configMessageController.add(jsonEncode(decoded));
       return;
     }
 

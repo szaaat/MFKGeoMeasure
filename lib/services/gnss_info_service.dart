@@ -6,6 +6,7 @@ import 'package:raw_gnss/raw_gnss.dart';
 import 'package:raw_gnss/gnss_status_model.dart';
 import 'raw_gnss_logger.dart';
 import '../models/gnss_fix.dart';
+import '../models/gnss/sbas_status.dart';
 import 'gnss/gnss_provider.dart';
 import 'gnss/internal_gnss_provider.dart';
 import 'gnss/external_gnss_provider.dart';
@@ -14,6 +15,7 @@ import 'gnss/mfkrtk_diagnostics_logger.dart';
 import 'gnss/rtcm_service.dart';
 import '../models/gnss/mfkrtk_status.dart';
 import '../models/gnss/mfkrtk_nav_data.dart';
+import '../models/gnss/mfkrtk_readiness.dart';
 import 'gnss/mfkrtk_ota_service.dart';
 import 'geoid_service.dart';
 import '../models/ntrip_settings.dart';
@@ -26,13 +28,6 @@ import 'package:share_plus/share_plus.dart';
 import 'kalman_service.dart';
 import 'eov_service.dart';
 import 'package:latlong2/latlong.dart';
-
-enum MfkRtkMeasurementState {
-  waitingRtk,
-  waitingInsAlign,
-  readyToMeasure,
-  rtcmLost,
-}
 
 class GnssStatusData {
   final int satellitesInView;
@@ -204,11 +199,16 @@ class GnssInfoService extends ChangeNotifier {
   StreamSubscription? _mfkConfigSubscription;
   StreamSubscription? _mfkConnectionSubscription;
   Timer? _mfkReconnectTimer;
+  Timer? _mfkReadinessTimer;
   bool _mfkReconnectInProgress = false;
   int _mfkReconnectAttempt = 0;
   bool _mfkConnected = false;
   MfkRtkStatus? _lastMfkRtkStatus;
   MfkRtkNavData? _lastMfkNavData;
+  DateTime? _lastMfkStatusReceivedAt;
+  DateTime? _lastMfkNavReceivedAt;
+  DateTime? _lastMfkFixReceivedAt;
+  MfkRtkMeasurementState? _lastMfkReadinessEventState;
   String? _rtcmAlert;
   String? _lastMfkConfigMessage;
   InternalGnssError? _internalGnssError;
@@ -265,7 +265,13 @@ class GnssInfoService extends ChangeNotifier {
   bool get isStableRtkFix => _isStableRtkFix;
   double get currentFixStabilityDuration => _rtkStabilityStopwatch.elapsedMilliseconds / 1000.0;
 
+  // SBAS Diagnostics
+  StreamSubscription? _sbasStatusSubscription;
+  StreamSubscription? _sbasNavSubscription;
+  SbasStatusData _sbasStatus = const SbasStatusData(state: SbasState.unavailable);
+
   // Getterek
+  SbasStatusData get sbasStatus => _sbasStatus;
   GnssStatusData get currentStatus => _currentStatus;
   GnssProvider? get activeProvider => _activeProvider;
   GnssFix? get lastFix => _lastFix;
@@ -274,8 +280,10 @@ class GnssInfoService extends ChangeNotifier {
   DateTime? get kalmanLastUpdateTime => _kalmanLastUpdateTime;
   bool get isPositionValid => _positionValid;
   bool get isKalmanInitialized => _kalmanInitialized;
-  MfkRtkStatus? get mfkRtkStatus => _lastMfkRtkStatus ?? (_activeProvider is MfkRtkProvider ? (_activeProvider as MfkRtkProvider).lastStatus : null);
-  MfkRtkNavData? get mfkRtkNavData => _lastMfkNavData ?? (_activeProvider is MfkRtkProvider ? (_activeProvider as MfkRtkProvider).lastNavData : null);
+  MfkRtkStatus? get mfkRtkStatus =>
+      _isFreshMfkData(_lastMfkStatusReceivedAt) ? _lastMfkRtkStatus : null;
+  MfkRtkNavData? get mfkRtkNavData =>
+      _isFreshMfkData(_lastMfkNavReceivedAt) ? _lastMfkNavData : null;
   MfkRtkRtcmStatus? get mfkRtkRtcmStatus => _activeProvider is MfkRtkProvider ? (_activeProvider as MfkRtkProvider).lastRtcmStatus : null;
   String? get rtcmAlert => _rtcmAlertDismissed ? null : _rtcmAlert;
   String? get lastMfkConfigMessage => _lastMfkConfigMessage;
@@ -286,26 +294,67 @@ class GnssInfoService extends ChangeNotifier {
 
   MfkRtkMeasurementState get mfkRtkMeasurementState {
     if (!isMfkRtkActive) return MfkRtkMeasurementState.readyToMeasure;
-    if (!_mfkConnected) return MfkRtkMeasurementState.waitingRtk;
+    return MfkRtkReadiness.evaluate(
+      connected: _mfkConnected,
+      nav: mfkRtkNavData,
+      navReceivedAt: _lastMfkNavReceivedAt,
+      status: mfkRtkStatus,
+      statusReceivedAt: _lastMfkStatusReceivedAt,
+      fix: _lastFix,
+      fixReceivedAt: _lastMfkFixReceivedAt,
+      now: DateTime.now(),
+    );
+  }
+
+  bool _isFreshMfkData(DateTime? receivedAt) {
+    if (receivedAt == null) return false;
+    final age = DateTime.now().difference(receivedAt);
+    return !age.isNegative && age <= MfkRtkReadiness.maxDataAge;
+  }
+
+  void _refreshMfkReadinessState() {
+    if (!isMfkRtkActive) return;
+    final state = mfkRtkMeasurementState;
+    if (state == _lastMfkReadinessEventState) return;
+    _lastMfkReadinessEventState = state;
+
+    final now = DateTime.now();
+    final navAge = _lastMfkNavReceivedAt == null
+        ? null
+        : now.difference(_lastMfkNavReceivedAt!).inMilliseconds;
+    final statusAge = _lastMfkStatusReceivedAt == null
+        ? null
+        : now.difference(_lastMfkStatusReceivedAt!).inMilliseconds;
+    final fixAge = _lastMfkFixReceivedAt == null
+        ? null
+        : now.difference(_lastMfkFixReceivedAt!).inMilliseconds;
     final nav = mfkRtkNavData;
     final status = mfkRtkStatus;
-    if (nav == null && status == null) return MfkRtkMeasurementState.waitingRtk;
-
-    final rtcmOk = nav?.rtcmOk ?? status?.rtcmOk ?? false;
-    if (!rtcmOk) return MfkRtkMeasurementState.rtcmLost;
-
-    final posType = (nav?.posType ?? status?.posType ?? _lastFix?.positionSource ?? '').toUpperCase();
-    if (posType != 'NARROW_INT') return MfkRtkMeasurementState.waitingRtk;
-
-    if (nav != null && !nav.valid) return MfkRtkMeasurementState.waitingRtk;
-    final alignment = (nav?.insAlign ?? status?.insAlign ?? _lastFix?.insStatus ?? '').toUpperCase();
-    if (alignment == 'INS_SOLUTION_GOOD' || alignment == 'INS_ALIGNMENT_COMPLETE') {
-      return MfkRtkMeasurementState.readyToMeasure;
+    final provider = _activeProvider;
+    if (provider is MfkRtkProvider) {
+      provider.recordDiagnosticEvent('ins_initialization_state', {
+        'state': state.name,
+        'ins_state': nav?.insAlign ?? status?.insAlign ?? _lastFix?.insStatus,
+        'ins_align_full': nav?.insAlignFull ?? status?.insAlignFull,
+        'auto_ins_state': nav?.autoInsState ?? status?.autoInsState,
+        'alignment_mode': nav?.alignmentMode ?? status?.alignmentMode,
+        'alignment_trial_requested': nav?.alignmentTrialRequested ??
+            status?.alignmentTrialRequested,
+        'alignment_trial_command_rejected':
+            nav?.alignmentTrialCommandRejected ??
+                status?.alignmentTrialCommandRejected,
+        'auto_ins_error': nav?.autoInsError ?? status?.autoInsError,
+        'measurement_ready': nav?.measurementReady ?? status?.measurementReady,
+        'pos_type': nav?.posType ?? status?.posType ?? _lastFix?.positionSource,
+        'rtcm_ok': nav?.rtcmOk ?? status?.rtcmOk,
+        'rtcm_age_ms': nav?.rtcmAgeMs ?? status?.rtcmAgeMs,
+        'heading_deg': nav?.azimuth ?? _lastFix?.heading,
+        'nav_age_ms': navAge,
+        'status_age_ms': statusAge,
+        'fix_age_ms': fixAge,
+      });
     }
-    if (alignment == 'WAITING_AZIMUTH' || alignment == 'WAITING_INITIALPOS') {
-      return MfkRtkMeasurementState.waitingInsAlign;
-    }
-    return MfkRtkMeasurementState.waitingRtk;
+    notifyListeners();
   }
 
   void dismissRtcmAlert() {
@@ -365,9 +414,10 @@ class GnssInfoService extends ChangeNotifier {
     final generation = ++_providerGeneration;
     final previousProvider = _activeProvider;
 
-    // Stop the previous source completely before allowing a new source to
-    // publish fixes. This prevents stale async callbacks during rapid
-    // receiver switching.
+    // Stop SBAS diagnostics and previous source completely
+    await _stopSbasDiagnostics();
+    _sbasStatus = const SbasStatusData(state: SbasState.unavailable);
+
     await _fixSubscription?.cancel();
     await _ggaSubscription?.cancel();
     await _mfkStatusSubscription?.cancel();
@@ -392,6 +442,12 @@ class GnssInfoService extends ChangeNotifier {
 
     _lastMfkRtkStatus = null;
     _lastMfkNavData = null;
+    _lastMfkStatusReceivedAt = null;
+    _lastMfkNavReceivedAt = null;
+    _lastMfkFixReceivedAt = null;
+    _lastMfkReadinessEventState = null;
+    _mfkReadinessTimer?.cancel();
+    _mfkReadinessTimer = null;
     _lastRtkStatus = null;
     _rtcmAlert = null;
     _rtcmAlertDismissed = false;
@@ -415,6 +471,18 @@ class GnssInfoService extends ChangeNotifier {
     _isStableRtkFix = false; 
     
     _activeProvider = provider;
+    if (_activeProvider is InternalGnssProvider && Platform.isAndroid) {
+      _startSbasDiagnostics(generation);
+    } else {
+      _sbasStatus = const SbasStatusData(state: SbasState.unavailable);
+    }
+
+    if (provider is MfkRtkProvider) {
+      _mfkReadinessTimer = Timer.periodic(
+        const Duration(milliseconds: 500),
+        (_) => _refreshMfkReadinessState(),
+      );
+    }
     _internalGnssError = null;
     _mfkConnected = provider is! MfkRtkProvider;
     
@@ -435,6 +503,9 @@ class GnssInfoService extends ChangeNotifier {
       _epochSequence++;
       final currentEpochId = _epochSequence;
       final now = DateTime.now();
+      if (provider is MfkRtkProvider) {
+        _lastMfkFixReceivedAt = now;
+      }
 
       // Track RTK status transitions
       if (_lastRtkStatus != fix.rtkStatus) {
@@ -572,6 +643,7 @@ class GnssInfoService extends ChangeNotifier {
         _fixStreamController.add(_lastFix!);
       }
 
+      if (provider is MfkRtkProvider) _refreshMfkReadinessState();
       notifyListeners();
     });
     
@@ -586,10 +658,14 @@ class GnssInfoService extends ChangeNotifier {
       });
       _mfkStatusSubscription = mfk.statusStream.listen((status) {
         _lastMfkRtkStatus = status;
+        _lastMfkStatusReceivedAt = DateTime.now();
+        _refreshMfkReadinessState();
         notifyListeners();
       });
       _mfkNavSubscription = mfk.navDataStream.listen((nav) {
         _lastMfkNavData = nav;
+        _lastMfkNavReceivedAt = DateTime.now();
+        _refreshMfkReadinessState();
         notifyListeners();
       });
       _mfkConfigSubscription = mfk.configMessageStream.listen(_handleMfkConfigMessage);
@@ -600,6 +676,7 @@ class GnssInfoService extends ChangeNotifier {
         }
         if (connected) {
           _mfkConnected = true;
+          _refreshMfkReadinessState();
           _mfkReconnectTimer?.cancel();
           _mfkReconnectTimer = null;
           _mfkReconnectInProgress = false;
@@ -607,6 +684,10 @@ class GnssInfoService extends ChangeNotifier {
           notifyListeners();
         } else {
           _mfkConnected = false;
+          _lastMfkStatusReceivedAt = null;
+          _lastMfkNavReceivedAt = null;
+          _lastMfkFixReceivedAt = null;
+          _refreshMfkReadinessState();
           _handleMfkConnectionLost(mfk, generation);
         }
       });
@@ -812,6 +893,9 @@ class GnssInfoService extends ChangeNotifier {
     MfkRtkProvider provider,
     int generation,
   ) {
+    _lastMfkStatusReceivedAt = null;
+    _lastMfkNavReceivedAt = null;
+    _lastMfkFixReceivedAt = null;
     _lastFix = null;
     _lastRawFix = null;
     _positionValid = false;
@@ -995,10 +1079,108 @@ class GnssInfoService extends ChangeNotifier {
     }
   }
 
+  void _startSbasDiagnostics(int generation) {
+    _stopSbasDiagnostics();
+    if (!Platform.isAndroid || _activeProvider is! InternalGnssProvider) {
+      _sbasStatus = const SbasStatusData(state: SbasState.unavailable);
+      notifyListeners();
+      return;
+    }
+
+    try {
+      _sbasStatusSubscription = _rawGnss.gnssStatusEvents.listen((GnssStatusModel model) {
+        if (generation != _providerGeneration || _activeProvider is! InternalGnssProvider) {
+          return;
+        }
+        _processSbasStatusModel(model);
+      }, onError: (e) {
+        debugPrint("Error in SBAS status listener: $e");
+      });
+    } catch (e) {
+      debugPrint("Failed to start SBAS status listener: $e");
+    }
+
+    try {
+      _sbasNavSubscription = _rawGnss.gnssNavigationMessageEvents.listen((event) {
+        if (generation != _providerGeneration || _activeProvider is! InternalGnssProvider) {
+          return;
+        }
+        if (event is Map) {
+          final type = (event['type'] as num?)?.toInt();
+          if (type == 513 || type == 0x0201) { // TYPE_SBS = 0x0201 (513 decimal, Android 11+ / API 30+)
+            final svid = (event['svid'] as num?)?.toInt();
+            _processSbasNavMessage(svid);
+          }
+        }
+      }, onError: (e) {
+        debugPrint("Error in SBAS nav message listener: $e");
+      });
+    } catch (e) {
+      debugPrint("Failed to start SBAS nav message listener: $e");
+    }
+  }
+
+  void _processSbasStatusModel(GnssStatusModel model) {
+    final statusList = model.status ?? [];
+    final sbasSats = statusList.where((sat) => sat.constellationType == 2).toList();
+    final int inView = sbasSats.length;
+    final int usedInFix = sbasSats.where((sat) => sat.usedInFix == true).length;
+
+    const egnosPrns = {123, 126, 136, 138};
+    final bool hasKnownEgnos = sbasSats.any((sat) => sat.svid != null && egnosPrns.contains(sat.svid));
+
+    SbasState state;
+    if (!Platform.isAndroid || _activeProvider is! InternalGnssProvider) {
+      state = SbasState.unavailable;
+    } else if (inView == 0) {
+      state = SbasState.notDetected;
+    } else if (usedInFix > 0) {
+      state = SbasState.usedInFix;
+    } else {
+      state = SbasState.detected;
+    }
+
+    _sbasStatus = SbasStatusData(
+      state: state,
+      sbasInViewCount: inView,
+      sbasUsedInFixCount: usedInFix,
+      sbasSatellites: sbasSats,
+      hasNavigationMessages: _sbasStatus.hasNavigationMessages,
+      lastNavMessageTimestamp: _sbasStatus.lastNavMessageTimestamp,
+      lastNavSvid: _sbasStatus.lastNavSvid,
+      hasKnownEgnosPrn: hasKnownEgnos,
+    );
+    notifyListeners();
+  }
+
+  void _processSbasNavMessage(int? svid) {
+    if (!Platform.isAndroid || _activeProvider is! InternalGnssProvider) return;
+    _sbasStatus = SbasStatusData(
+      state: _sbasStatus.state,
+      sbasInViewCount: _sbasStatus.sbasInViewCount,
+      sbasUsedInFixCount: _sbasStatus.sbasUsedInFixCount,
+      sbasSatellites: _sbasStatus.sbasSatellites,
+      hasNavigationMessages: true,
+      lastNavMessageTimestamp: DateTime.now(),
+      lastNavSvid: svid,
+      hasKnownEgnosPrn: _sbasStatus.hasKnownEgnosPrn,
+    );
+    notifyListeners();
+  }
+
+  Future<void> _stopSbasDiagnostics() async {
+    await _sbasStatusSubscription?.cancel();
+    await _sbasNavSubscription?.cancel();
+    _sbasStatusSubscription = null;
+    _sbasNavSubscription = null;
+  }
+
   @override
   void dispose() {
+    _stopSbasDiagnostics();
     _stabilityTimer?.cancel();
     _mfkReconnectTimer?.cancel();
+    _mfkReadinessTimer?.cancel();
     _rawGnssSubscription?.cancel();
     _fixSubscription?.cancel();
     _ggaSubscription?.cancel();

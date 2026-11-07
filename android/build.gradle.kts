@@ -110,6 +110,21 @@ subprojects {
                         }
                     } catch (e: Exception) {}
                 }
+
+                val dartFile = file("lib/raw_gnss.dart")
+                if (dartFile.exists()) {
+                    try {
+                        var dartContent = dartFile.readText()
+                        if (dartContent.contains("if (_gnssMeasurementEvents == null) {") &&
+                            dartContent.contains("Stream<GnssStatusModel> get gnssStatusEvents")) {
+                            dartContent = dartContent.replace(
+                                "Stream<GnssStatusModel> get gnssStatusEvents {\n    if (_gnssMeasurementEvents == null) {",
+                                "Stream<GnssStatusModel> get gnssStatusEvents {\n    if (_gnssStatusEvents == null) {"
+                            )
+                            dartFile.writeText(dartContent)
+                        }
+                    } catch (e: Exception) {}
+                }
             }
         }
     }

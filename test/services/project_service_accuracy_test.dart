@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mfk_geomeasure/models/gnss_fix.dart';
 import 'package:mfk_geomeasure/services/project_service.dart';
 
@@ -76,7 +77,18 @@ void main() {
       expect(service.currentFixes, isEmpty);
     });
 
+    test('Keeps M21 USER pole-tip output correction disabled until verified', () {
+      service.setAntennaHeight(1.85);
+      service.addPointToGeometry(
+        const LatLng(47, 19),
+        112.35,
+      );
+
+      expect(service.currentAltitudes.single, 110.5);
+    });
+
     test('Saves the accuracy-weighted coordinate and altitude', () async {
+      service.setAntennaHeight(0);
       final controller = StreamController<GnssFix>(sync: true);
       final averaging =
           service.startAveraging(controller.stream, maxDurationSeconds: 30);

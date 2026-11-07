@@ -114,6 +114,7 @@ class SkyplotPainter extends CustomPainter {
   Color _getConstellationColor(int type) {
     switch (type) {
       case 1: return Colors.blue;    // GPS
+      case 2: return Colors.amber;   // SBAS / EGNOS
       case 3: return Colors.red;     // GLONASS
       case 5: return Colors.orange;  // BEIDOU
       case 6: return Colors.green;   // GALILEO

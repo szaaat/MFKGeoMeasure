@@ -26,6 +26,8 @@ import '../widgets/search_dialog.dart';
 import '../services/data_validation_service.dart';
 import '../widgets/location_disclosure_dialog.dart';
 import '../services/gnss_info_service.dart';
+import '../models/gnss/mfkrtk_readiness.dart';
+import '../models/gnss/sbas_status.dart';
 import 'control_point_check_screen.dart';
 import '../services/photo_service.dart';
 import '../services/template_service.dart';
@@ -308,8 +310,6 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _startLocationUpdates() async {
-    await LocationDisclosureService.checkAndShowDisclosure(context);
-    if (!mounted) return;
     final gnssService = context.read<GnssInfoService>();
 
     // Kezdeti pozíció lekérése az utolsó ismert fix alapján (ha van)
@@ -371,6 +371,8 @@ class _MapScreenState extends State<MapScreen> {
     }, onError: (error) {
       debugPrint("GNSS UPDATE FAILURE: $error");
     });
+
+    unawaited(LocationDisclosureService.checkAndShowDisclosure(context));
   }
 
   // --- KOORDINÁTA KERESŐ ÉS PROJEKTBE MENTŐ ---
@@ -385,41 +387,55 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.geodeticSettings),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: antController,
-              decoration: InputDecoration(
-                  labelText: l10n.antennaHeight, hintText: "Pl: 2.0"),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9,.\-]')),
-              ],
-            ),
-            TextField(
-              controller: accController,
-              decoration: InputDecoration(
-                  labelText: l10n.requiredAccuracy, hintText: "Pl: 3.0"),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9,.\-]')),
-              ],
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.push(
+        content: StatefulBuilder(
+          builder: (ctx, setDialogState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: antController,
+                decoration: InputDecoration(
+                  labelText: l10n.antennaHeight,
+                  hintText: "Pl: 2.0",
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.\-]')),
+                ],
+              ),
+              TextField(
+                controller: accController,
+                decoration: InputDecoration(
+                  labelText: l10n.requiredAccuracy,
+                  hintText: "Pl: 3.0",
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9,.\-]')),
+                ],
+              ),
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('M21 USER pont korrekció kikapcsolva'),
+                subtitle: Text(
+                  'A rúdhegy kimenet csak INSCONFIGA visszaolvasás és kontrollmérés után aktiválható.',
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const GnssSettingsScreen()));
-              },
-              icon: const Icon(Icons.settings_bluetooth),
-              label: Text(l10n.gnssSource),
-            ),
-          ],
+                      builder: (_) => const GnssSettingsScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.settings_bluetooth),
+                label: Text(l10n.gnssSource),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -671,28 +687,41 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    // Tájékoztató jelzés nem-ideális RTK állapot esetén, de a rögzítést NEM blokkoljuk!
+    final bool hasRtkFix = gnssService.lastFix != null &&
+        gnssService.lastFix!.rtkStatus == RtkStatus.fixed;
     if (gnssService.isMfkRtkActive &&
         gnssService.mfkRtkMeasurementState !=
-            MfkRtkMeasurementState.readyToMeasure) {
+            MfkRtkMeasurementState.readyToMeasure &&
+        !hasRtkFix) {
       final stateMsg = switch (gnssService.mfkRtkMeasurementState) {
+        MfkRtkMeasurementState.configurationError =>
+          'A vevő INS-konfigurációs hibát jelentett; pont nem rögzíthető',
+        MfkRtkMeasurementState.autoInsConfiguring =>
+          'INS konfigurálás folyamatban; pont nem rögzíthető',
+        MfkRtkMeasurementState.autoInsTrial =>
+          'Automatikus igazítási próba fut; pont nem rögzíthető',
+        MfkRtkMeasurementState.insSolutionUnverified =>
+          'A vevő INS_SOLUTION_GOOD állapotot jelent, azimut nem igazolt; pont nem rögzíthető',
         MfkRtkMeasurementState.waitingInsAlign =>
-          'INS dőlésmérés még igazodik · Rögzítés engedélyezve',
+          'INS megoldásra vár; mérési pont nem rögzíthető',
+        MfkRtkMeasurementState.waitingHeading =>
+          'Érvényes M21 irányadatra vár; mérési pont nem rögzíthető',
+        MfkRtkMeasurementState.insAlignmentComplete =>
+          'INS finom megoldásra vár; mérési pont nem rögzíthető',
         MfkRtkMeasurementState.rtcmLost =>
-          'RTCM korrekció megszakadt · Rögzítés engedélyezve',
+          'RTCM korrekció nem friss; mérési pont nem rögzíthető',
         MfkRtkMeasurementState.waitingRtk =>
-          'Nem RTK FIX pozíció (${gnssService.lastFix?.rtkStatus.name.toUpperCase() ?? 'FLOAT'}) · Rögzítés engedélyezve',
+          'Friss RTK FIX szükséges; mérési pont nem rögzíthető',
         MfkRtkMeasurementState.readyToMeasure => '',
       };
-      if (stateMsg.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(stateMsg),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.orange.shade800,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(stateMsg),
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.orange.shade800,
+        ),
+      );
+      return;
     }
 
     final projectService = context.read<ProjectService>();
@@ -967,13 +996,15 @@ class _MapScreenState extends State<MapScreen> {
               final last = gnss.lastFix;
               final rtkStatus = last?.rtkStatus ?? RtkStatus.none;
 
+              final bool hasRtkFix = last != null && last.rtkStatus == RtkStatus.fixed;
               bool isStrictReady = isMfk
-                  ? gnss.mfkRtkMeasurementState ==
-                      MfkRtkMeasurementState.readyToMeasure
+                  ? (gnss.mfkRtkMeasurementState ==
+                          MfkRtkMeasurementState.readyToMeasure ||
+                      hasRtkFix)
                   : gnss.isStableRtkFix;
 
               bool canSave = isStrictReady;
-              if (!canSave && gnss.allowFloatSave) {
+              if (!canSave && gnss.allowFloatSave && !isMfk) {
                 if (rtkStatus == RtkStatus.float ||
                     rtkStatus == RtkStatus.fixed ||
                     last != null ||
@@ -984,12 +1015,24 @@ class _MapScreenState extends State<MapScreen> {
 
               String? statusMsg;
               if (!isStrictReady) {
-                if (gnss.allowFloatSave) {
+                if (gnss.allowFloatSave && !isMfk) {
                   statusMsg = "RTK Float mentés engedélyezve";
                 } else if (isMfk) {
                   statusMsg = switch (gnss.mfkRtkMeasurementState) {
+                    MfkRtkMeasurementState.configurationError =>
+                      'A vevő INS-konfigurációs hibát jelentett',
+                    MfkRtkMeasurementState.autoInsConfiguring =>
+                      'INS konfigurálás folyamatban',
+                    MfkRtkMeasurementState.autoInsTrial =>
+                      'Automatikus igazítási próba fut',
+                    MfkRtkMeasurementState.insSolutionUnverified =>
+                      'A vevő INS_SOLUTION_GOOD állapotot jelent, de az azimut nincs igazolva',
                     MfkRtkMeasurementState.waitingInsAlign =>
                       l10n.waitingInsAlignMsg,
+                    MfkRtkMeasurementState.waitingHeading =>
+                      'Érvényes M21 irányadatra vár',
+                    MfkRtkMeasurementState.insAlignmentComplete =>
+                      'INS alap-illesztés kész; INS_SOLUTION_GOOD szükséges',
                     MfkRtkMeasurementState.rtcmLost => l10n.rtcmLost,
                     MfkRtkMeasurementState.waitingRtk => l10n.waitingRtkFix,
                     MfkRtkMeasurementState.readyToMeasure => null,
@@ -3215,10 +3258,22 @@ class _MapScreenState extends State<MapScreen> {
                             Expanded(
                               child: Text(
                                   switch (gnssService.mfkRtkMeasurementState) {
+                                    MfkRtkMeasurementState.configurationError =>
+                                      'A vevő INS-konfigurációs hibát jelentett',
+                                    MfkRtkMeasurementState.autoInsConfiguring =>
+                                      'INS konfigurálás folyamatban',
+                                    MfkRtkMeasurementState.autoInsTrial =>
+                                      'Automatikus igazítási próba fut',
+                                    MfkRtkMeasurementState.insSolutionUnverified =>
+                                      'A vevő INS_SOLUTION_GOOD állapotot jelent, de az azimut nincs igazolva',
                                     MfkRtkMeasurementState.readyToMeasure =>
                                       l10n.readyToMeasure,
                                     MfkRtkMeasurementState.waitingInsAlign =>
                                       l10n.waitingInsAlignMsg,
+                                    MfkRtkMeasurementState.waitingHeading =>
+                                      'Érvényes M21 irányadatra vár',
+                                    MfkRtkMeasurementState.insAlignmentComplete =>
+                                      'INS alap-illesztés kész; finom INS megoldásra vár',
                                     MfkRtkMeasurementState.rtcmLost =>
                                       l10n.rtcmLost,
                                     MfkRtkMeasurementState.waitingRtk =>
@@ -3926,7 +3981,14 @@ class _MapScreenState extends State<MapScreen> {
                                                 ),
                                               ),
                                             _buildInsStatusBadge(
-                                                gnssService.lastFix),
+                                              gnssService.lastFix,
+                                              trialUnverified:
+                                                  gnssService.mfkRtkMeasurementState ==
+                                                          MfkRtkMeasurementState.autoInsTrial ||
+                                                      gnssService.mfkRtkMeasurementState ==
+                                                          MfkRtkMeasurementState.insSolutionUnverified,
+                                            ),
+                                            _buildSbasBadge(gnssService.sbasStatus),
                                             Builder(
                                               builder: (_) {
                                                 final batteryPct = (gnssService
@@ -4152,13 +4214,21 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _buildInsStatusBadge(GnssFix? fix) {
+  Widget _buildInsStatusBadge(
+    GnssFix? fix, {
+    bool trialUnverified = false,
+  }) {
     if (fix?.insStatus == null) return const SizedBox.shrink();
 
     Color bgColor = Colors.blueGrey;
     String label = "GNSS Fallback";
 
-    if (fix!.insStatus == 'INS_SOLUTION_GOOD') {
+    if (trialUnverified) {
+      bgColor = Colors.deepOrange;
+      label = fix!.insStatus == 'INS_SOLUTION_GOOD'
+          ? 'AZIMUT UNVERIF.'
+          : 'ALIGN TRIAL';
+    } else if (fix!.insStatus == 'INS_SOLUTION_GOOD') {
       bgColor = Colors.green;
       label = "INS GOOD";
     } else if (fix.insStatus == 'INS_ALIGNMENT_COMPLETE') {
@@ -4174,6 +4244,35 @@ class _MapScreenState extends State<MapScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
         color: bgColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+            color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildSbasBadge(SbasStatusData sbas) {
+    if (!sbas.isActive || sbas.state == SbasState.unavailable) {
+      return const SizedBox.shrink();
+    }
+    final isUsed = sbas.state == SbasState.usedInFix;
+    final label = isUsed
+        ? "SBAS FIX"
+        : (sbas.state == SbasState.detected ? "SBAS" : "NO SBAS");
+    final color = isUsed
+        ? Colors.green.shade700
+        : (sbas.state == SbasState.detected
+            ? Colors.blue.shade700
+            : Colors.grey);
+
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: color,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(

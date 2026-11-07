@@ -18,6 +18,8 @@ import 'geoid_service.dart';
 import 'shp_export_service.dart';
 import 'gnss/rtcm_service.dart';
 import 'gnss_info_service.dart';
+import 'gnss/mfkrtk_diagnostics_logger.dart';
+import 'package:uuid/uuid.dart';
 import 'import_service.dart';
 import 'gpkg_service.dart';
 import 'data_validation_service.dart';
@@ -1321,7 +1323,24 @@ class ProjectService extends ChangeNotifier {
   void addPointToGeometry(LatLng point, double altitude,
       {bool isEllipsoidal = true, GnssFix? fix}) {
     _captureEditState();
-    double correctedAltitude = altitude - antennaHeight;
+    final correctedAltitude = altitude - antennaHeight;
+    
+    final pointId = const Uuid().v4();
+    MfkRtkDiagnosticsLogger().recordEvent(
+      'geometry_calc',
+      {
+        'raw_lat': point.latitude,
+        'raw_lon': point.longitude,
+        'raw_alt': altitude,
+        'is_ellipsoidal': isEllipsoidal,
+        'antenna_height': antennaHeight,
+        'corrected_alt': correctedAltitude,
+        'tilt_compensation_applied': false,
+        'reason': 'not_implemented',
+      },
+      pointId: pointId,
+      fixId: fix != null ? fix.hashCode.toString() : null, // Fix doesn't have an ID, we could use a hash or just link by time
+    );
 
     if (activeTool == FeatureType.point) {
       currentGeometry = [point];
@@ -1643,6 +1662,19 @@ class ProjectService extends ChangeNotifier {
     }
 
     _activeLayer!.features.add(feature);
+    
+    MfkRtkDiagnosticsLogger().recordEvent(
+      'feature_saved',
+      {
+        'feature_name': name,
+        'feature_type': type.name,
+        'geometry_count': geometry.length,
+        'stats': stats,
+        'properties': feature.properties,
+      },
+      pointId: feature.id,
+    );
+    
     _saveProjectsToDisk();
 
     if (_gnssInfoService?.ntripSettings.autoStopAfterMeasurement ?? false) {

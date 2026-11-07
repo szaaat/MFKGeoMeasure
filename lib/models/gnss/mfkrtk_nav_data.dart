@@ -20,6 +20,13 @@ class MfkRtkNavData {
   final bool rtcmOk;
   final int? batteryPercentage;
   final double? batteryVoltage;
+  final String? autoInsState;
+  final String? alignmentMode;
+  final bool? alignmentTrialRequested;
+  final bool? alignmentTrialCommandRejected;
+  final String? autoInsError;
+  final String? insAlignFull;
+  final bool? measurementReady;
 
   const MfkRtkNavData({
     this.version = 0,
@@ -43,6 +50,13 @@ class MfkRtkNavData {
     this.rtcmOk = false,
     this.batteryPercentage,
     this.batteryVoltage,
+    this.autoInsState,
+    this.alignmentMode,
+    this.alignmentTrialRequested,
+    this.alignmentTrialCommandRejected,
+    this.autoInsError,
+    this.insAlignFull,
+    this.measurementReady,
   });
 
   factory MfkRtkNavData.fromJson(Map<String, dynamic> json) {
@@ -104,7 +118,33 @@ class MfkRtkNavData {
       rtcmOk: json['rtcm_ok'] == true,
       batteryPercentage: batPct,
       batteryVoltage: batVolt,
+      autoInsState: json['auto_ins_state']?.toString(),
+      alignmentMode: json['alignment_mode']?.toString(),
+      alignmentTrialRequested: _boolValue(json['alignment_trial_requested']),
+      alignmentTrialCommandRejected:
+          _boolValue(json['alignment_trial_command_rejected']),
+      autoInsError: json['auto_ins_error']?.toString(),
+      insAlignFull: json['ins_align_full']?.toString(),
+      measurementReady: _boolValue(json['measurement_ready']),
     );
+  }
+
+  static bool? _boolValue(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      switch (value.trim().toLowerCase()) {
+        case 'true':
+        case '1':
+        case 'yes':
+          return true;
+        case 'false':
+        case '0':
+        case 'no':
+          return false;
+      }
+    }
+    return null;
   }
 
   static int? _intValue(dynamic value) {

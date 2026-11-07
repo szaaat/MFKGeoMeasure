@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mfk_geomeasure/models/gnss/mfkrtk_constants.dart';
+import 'package:mfk_geomeasure/models/gnss/mfkrtk_status.dart';
 import 'package:mfk_geomeasure/services/gnss/ble_transport.dart';
 import 'package:mfk_geomeasure/services/gnss/mfkrtk_provider.dart';
 
@@ -120,6 +121,47 @@ void main() {
         ),
         isTrue,
       );
+    });
+
+    test('connect sends no heading or INS restart and parses auto INS events', () async {
+      final statuses = <MfkRtkStatus>[];
+      final messages = <String>[];
+      final subscription = provider.statusStream.listen(statuses.add);
+      final messageSubscription = provider.configMessageStream.listen(messages.add);
+
+      await provider.connect();
+      expect(transport.writes, isEmpty);
+
+      transport.configNotifications.add(utf8.encode(
+        '{"event":"auto_ins_state","state":"ALIGN_TRIAL_RUNNING",'
+        '"alignment_mode":"ALIGN_TRIAL_EXPERIMENTAL",'
+        '"alignment_trial_requested":true,"ins_align":"ALIGN_TRIAL_UNVERIFIED",'
+        '"ins_align_full":"INS_SOLUTION_GOOD","measurement_ready":false}\r\n',
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(statuses, hasLength(1));
+      expect(statuses.single.autoInsState, 'ALIGN_TRIAL_RUNNING');
+      expect(statuses.single.alignmentMode, 'ALIGN_TRIAL_EXPERIMENTAL');
+      expect(statuses.single.alignmentTrialRequested, isTrue);
+      expect(statuses.single.insAlignFull, 'INS_SOLUTION_GOOD');
+      expect(statuses.single.measurementReady, isFalse);
+      transport.configNotifications.add(utf8.encode(
+        'AUTO_INS_STATUS\r\nAUTO_INS_RETRY\r\n'
+        'HEADING_IGNORED_AUTO_INS_TRIAL_UNVERIFIED\r\n'
+        'INS_RESTART_BLOCKED_AUTO_INIT_USE_AUTO_INS_RETRY_OR_M21_RESET_INS\r\n',
+      ));
+      await Future<void>.delayed(Duration.zero);
+      expect(messages, [
+        '{"event":"auto_ins_state","state":"ALIGN_TRIAL_RUNNING","alignment_mode":"ALIGN_TRIAL_EXPERIMENTAL","alignment_trial_requested":true,"ins_align":"ALIGN_TRIAL_UNVERIFIED","ins_align_full":"INS_SOLUTION_GOOD","measurement_ready":false}',
+        'AUTO_INS_STATUS',
+        'AUTO_INS_RETRY',
+        'HEADING_IGNORED_AUTO_INS_TRIAL_UNVERIFIED',
+        'INS_RESTART_BLOCKED_AUTO_INIT_USE_AUTO_INS_RETRY_OR_M21_RESET_INS',
+      ]);
+      expect(transport.writes, isEmpty);
+      await subscription.cancel();
+      await messageSubscription.cancel();
     });
 
     test('RTCM forwarding remains on the separate RTCM characteristic', () async {

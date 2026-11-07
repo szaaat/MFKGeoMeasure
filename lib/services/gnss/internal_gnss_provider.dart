@@ -100,34 +100,52 @@ class InternalGnssProvider implements GnssProvider {
         distanceFilter: 0,
       );
 
+      // Fetch last known position immediately for zero-delay initial location
+      try {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null && !_fixController.isClosed) {
+          _fixController.add(_mapPositionToGnssFix(lastKnown));
+        }
+      } catch (e) {
+        debugPrint("Could not fetch last known position: $e");
+      }
+
       _positionSubscription =
           Geolocator.getPositionStream(locationSettings: locationSettings)
               .listen((Position position) {
         _fixController.add(_mapPositionToGnssFix(position));
       });
 
-      _rawSubscription = _rawGnss.gnssMeasurementEvents.listen((model) {
-        final now = DateTime.now();
-        for (var m in (model.measurements ?? [])) {
-          _rawMeasurementController.add(GnssRawMeasurement(
-            timestamp: now,
-            svid: (m.svid as num?)?.toInt() ?? 0,
-            constellationType:
-                (m.constellationType as num?)?.toInt() ?? 0,
-            accumulatedDeltaRangeMeters:
-                (m.accumulatedDeltaRangeMeters as num?)?.toDouble(),
-            accumulatedDeltaRangeState:
-                (m.accumulatedDeltaRangeState as num?)?.toInt(),
-            receivedSvTimeNanos:
-                (m.receivedSvTimeNanos as num?)?.toInt(),
-            cn0DbHz: (m.cn0DbHz as num?)?.toDouble(),
-            carrierFrequencyHz: (m.carrierFrequencyHz as num?)?.toDouble(),
-            timeOffsetNanos: (m.timeOffsetNanos as num?)?.toInt(),
-            multipathIndicator:
-                (m.multipathIndicator as num?)?.toInt(),
-          ));
-        }
-      });
+      try {
+        _rawSubscription = _rawGnss.gnssMeasurementEvents.listen((model) {
+          if (_rawMeasurementController.hasListener) {
+            final now = DateTime.now();
+            for (var m in (model.measurements ?? [])) {
+              _rawMeasurementController.add(GnssRawMeasurement(
+                timestamp: now,
+                svid: (m.svid as num?)?.toInt() ?? 0,
+                constellationType:
+                    (m.constellationType as num?)?.toInt() ?? 0,
+                accumulatedDeltaRangeMeters:
+                    (m.accumulatedDeltaRangeMeters as num?)?.toDouble(),
+                accumulatedDeltaRangeState:
+                    (m.accumulatedDeltaRangeState as num?)?.toInt(),
+                receivedSvTimeNanos:
+                    (m.receivedSvTimeNanos as num?)?.toInt(),
+                cn0DbHz: (m.cn0DbHz as num?)?.toDouble(),
+                carrierFrequencyHz: (m.carrierFrequencyHz as num?)?.toDouble(),
+                timeOffsetNanos: (m.timeOffsetNanos as num?)?.toInt(),
+                multipathIndicator:
+                    (m.multipathIndicator as num?)?.toInt(),
+              ));
+            }
+          }
+        }, onError: (e) {
+          debugPrint("Raw GNSS measurement error: $e");
+        });
+      } catch (e) {
+        debugPrint("Raw GNSS measurements not supported: $e");
+      }
     }
   }
 
@@ -222,7 +240,9 @@ class InternalGnssProvider implements GnssProvider {
       geoidSeparation: geoidSeparation,
       horizontalAccuracy: hAccuracy,
       verticalAccuracy: vAccuracy,
-      fixType: hAccuracy < 10 && hAccuracy > 0 ? GnssFixType.autonomous : GnssFixType.none,
+      fixType: (latitude != 0.0 && longitude != 0.0)
+          ? GnssFixType.autonomous
+          : GnssFixType.none,
       satellitesUsed: 0,
       source: GnssSource.internal,
       receiverName: "Internal GPS (iOS)",
@@ -268,7 +288,9 @@ class InternalGnssProvider implements GnssProvider {
       geoidSeparation: geoidSeparation,
       horizontalAccuracy: pos.accuracy,
       verticalAccuracy: pos.altitudeAccuracy,
-      fixType: pos.accuracy < 10 && pos.accuracy > 0 ? GnssFixType.autonomous : GnssFixType.none,
+      fixType: (pos.latitude != 0.0 && pos.longitude != 0.0)
+          ? GnssFixType.autonomous
+          : GnssFixType.none,
       satellitesUsed: 0,
       source: GnssSource.internal,
       receiverName: "Internal GPS",

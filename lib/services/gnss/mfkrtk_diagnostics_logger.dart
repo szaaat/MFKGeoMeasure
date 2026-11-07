@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../models/gnss/mfkrtk_diagnostics.dart';
 import 'mfkrtk_provider.dart';
@@ -43,6 +44,9 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
   
   // Recent raw data for UI (last 2KB max)
   final List<int> _recentRawBytes = [];
+  String _calibrationTextBuffer = '';
+  String? _lastCalibrationState;
+  String? _sessionId;
 
   List<int> get recentRawBytes => _recentRawBytes;
 
@@ -80,10 +84,18 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
           'rtcm_bytes': nav.rtcmBytes,
           'rtcm_packets': nav.rtcmPkts,
           'rtcm_ok': nav.rtcmOk,
+          'auto_ins_state': nav.autoInsState,
+          'alignment_mode': nav.alignmentMode,
+          'alignment_trial_requested': nav.alignmentTrialRequested,
+          'alignment_trial_command_rejected': nav.alignmentTrialCommandRejected,
+          'auto_ins_error': nav.autoInsError,
+          'ins_align_full': nav.insAlignFull,
+          'measurement_ready': nav.measurementReady,
         },
       });
     });
     _configSubscription = _provider!.configMessageStream.listen((message) {
+      _captureCalibrationState(message);
       recordEvent('m21_config_rx', {'message': message});
     });
     _connectionSubscription = _provider!.connectionStatus.listen((connected) {
@@ -110,6 +122,8 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
     _diagnosticSubscription?.cancel();
     _diagnosticSubscription = null;
     _provider = null;
+    _lastCalibrationState = null;
+    _calibrationTextBuffer = '';
     _state = _state.copyWith(isConnected: false);
     
     if (_state.isLogging) {
@@ -131,13 +145,21 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
       
       _logSink = _logFile!.openWrite(mode: FileMode.append);
       
+      _sessionId = const Uuid().v4();
+      
       // Write header
       final header = {
-        'ts': now.toIso8601String(),
-        'type': 'metadata',
-        'app': 'GeoMeasure',
-        'platform': Platform.operatingSystem,
-        'firmware': _state.firmwareVersion ?? 'unknown',
+        'event_id': const Uuid().v4(),
+        'session_id': _sessionId,
+        'ts_utc': now.toUtc().toIso8601String(),
+        'event_type': 'session_start',
+        'source': 'MfkRtkDiagnosticsLogger',
+        'payload': {
+          'app': 'GeoMeasure',
+          'platform': Platform.operatingSystem,
+          'firmware': _state.firmwareVersion ?? 'unknown',
+        },
+        'status': 'success'
       };
       _logSink!.writeln(jsonEncode(header));
       
@@ -179,12 +201,29 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
     }
   }
 
-  void recordEvent(String type, Map<String, dynamic> fields) {
+  void recordEvent(
+    String type,
+    Map<String, dynamic> fields, {
+    String? messageId,
+    String? fixId,
+    String? pointId,
+    String status = 'success',
+    String? error,
+    String source = 'MfkRtkDiagnosticsLogger',
+  }) {
     if (!_state.isLogging || _logSink == null) return;
     final entry = <String, dynamic>{
-      'ts': DateTime.now().toUtc().toIso8601String(),
-      'type': type,
-      ...fields,
+      'event_id': const Uuid().v4(),
+      'session_id': _sessionId ?? 'unknown',
+      'ts_utc': DateTime.now().toUtc().toIso8601String(),
+      'event_type': type,
+      'source': fields.containsKey('source') ? fields.remove('source') : source,
+      if (messageId != null) 'message_id': messageId,
+      if (fixId != null) 'fix_id': fixId,
+      if (pointId != null) 'point_id': pointId,
+      'payload': fields,
+      'status': status,
+      if (error != null) 'error': error,
     };
     _logSink!.writeln(jsonEncode(entry));
   }
@@ -200,6 +239,13 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
         'rtcm_age_ms': status.rtcmAgeMs,
         'rtcm_bytes': status.rtcmBytes,
         'rtcm_packets': status.rtcmPkts,
+        'auto_ins_state': status.autoInsState,
+        'alignment_mode': status.alignmentMode,
+        'alignment_trial_requested': status.alignmentTrialRequested,
+        'alignment_trial_command_rejected': status.alignmentTrialCommandRejected,
+        'auto_ins_error': status.autoInsError,
+        'ins_align_full': status.insAlignFull,
+        'measurement_ready': status.measurementReady,
       };
 
   void clearMonitor() {
@@ -222,11 +268,17 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
     _state = MfkRtkDiagnostics();
     _rxBuffer.clear();
     _recentRawBytes.clear();
+    _calibrationTextBuffer = '';
+    _lastCalibrationState = null;
   }
+
+  @visibleForTesting
+  String? get calibrationStateForTest => _lastCalibrationState;
 
   void _onRawData(List<int> data) {
     if (data.isEmpty) return;
 
+    _captureCalibrationState(utf8.decode(data, allowMalformed: true));
     final now = DateTime.now();
     
     // 1. Statistics
@@ -278,6 +330,27 @@ class MfkRtkDiagnosticsLogger extends ChangeNotifier {
 
     // 4. Classification (NMEA vs Binary)
     _classifyData(data);
+  }
+
+  void _captureCalibrationState(String chunk) {
+    _calibrationTextBuffer += chunk.toUpperCase();
+    final matches = RegExp(
+      r'\b(INS_CONVERGING|INSUFFICIENT_SPEED|HIGH_ROTATION|CALIBRATING|CALIBRATED)\b',
+    ).allMatches(_calibrationTextBuffer);
+    for (final match in matches) {
+      final state = match.group(1)!;
+      if (state == _lastCalibrationState) continue;
+      _lastCalibrationState = state;
+      recordEvent('m21_calibration_state', {
+        'state': state,
+        'source': 'receiver_output',
+      });
+    }
+    if (_calibrationTextBuffer.length > 256) {
+      _calibrationTextBuffer = _calibrationTextBuffer.substring(
+        _calibrationTextBuffer.length - 256,
+      );
+    }
   }
 
   void _classifyData(List<int> data) {

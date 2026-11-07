@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/geo_feature.dart';
 import '../models/field_definition.dart';
 import 'eov_service.dart';
+import 'gnss/mfkrtk_diagnostics_logger.dart';
 
 class ShpExportService {
   
@@ -26,6 +27,14 @@ class ShpExportService {
 
     final exportFeatures = features ?? layer.features;
     if (exportFeatures.isEmpty) return [];
+    
+    MfkRtkDiagnosticsLogger().recordEvent(
+      'export_started',
+      {
+        'format': 'shp',
+        'use_eov': useEov,
+      },
+    );
 
     // 1. PRJ fájl
     if (useEov) {
