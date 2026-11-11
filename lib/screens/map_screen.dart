@@ -1620,6 +1620,9 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 TextButton(
                     onPressed: () {
+                      if (_stakeoutTarget?.id == feature.id) {
+                        setState(() => _stakeoutTarget = null);
+                      }
                       context.read<ProjectService>().deleteFeature(feature.id);
                       Navigator.pop(ctx);
                     },
@@ -1857,6 +1860,14 @@ class _MapScreenState extends State<MapScreen> {
                             tooltip: 'Csúcspont törlése',
                             onPressed: () {
                               try {
+                                if (feature.type == FeatureType.point || feature.geometry.length <= 1) {
+                                  if (_stakeoutTarget?.id == feature.id) {
+                                    setState(() => _stakeoutTarget = null);
+                                  }
+                                  service.deleteFeature(feature.id);
+                                  Navigator.pop(dialogContext);
+                                  return;
+                                }
                                 service.deleteFeatureVertex(feature, index);
                                 Navigator.pop(dialogContext);
                                 _showVertexEditor(feature);
@@ -3404,7 +3415,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 PolygonLayer(polygons: [
                   ...projectService.visibleFeatures
-                      .where((f) => f.type == FeatureType.polygon)
+                      .where((f) => f.type == FeatureType.polygon && f.geometry.length >= 3)
                       .map((f) {
                     final isSelected =
                         projectService.selectedFeatureIds.contains(f.id);
@@ -3420,7 +3431,7 @@ class _MapScreenState extends State<MapScreen> {
                 ]),
                 PolylineLayer(polylines: [
                   ...projectService.visibleFeatures
-                      .where((f) => f.type == FeatureType.line)
+                      .where((f) => f.type == FeatureType.line && f.geometry.length >= 2)
                       .map((f) {
                     final isSelected =
                         projectService.selectedFeatureIds.contains(f.id);
@@ -3432,7 +3443,7 @@ class _MapScreenState extends State<MapScreen> {
                 ]),
                 MarkerLayer(markers: [
                   ...projectService.visibleFeatures
-                      .where((f) => f.type == FeatureType.point)
+                      .where((f) => f.type == FeatureType.point && f.geometry.isNotEmpty)
                       .map((f) {
                     final isSelected =
                         projectService.selectedFeatureIds.contains(f.id);
@@ -3865,9 +3876,31 @@ class _MapScreenState extends State<MapScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text("EOV Y, X:",
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    Row(
+                                      children: [
+                                        const Text("EOV Y, X:",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                        if (liveEov?.mode == EovTransformMode.legacy)
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 6),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber.shade800,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: const Text(
+                                                "Helmert aktív",
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                     Text(
                                         "${eov[0].toStringAsFixed(0)}, ${eov[1].toStringAsFixed(0)}",
                                         style: const TextStyle(

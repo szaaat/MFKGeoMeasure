@@ -89,18 +89,34 @@ class EovService {
       );
     }
     if (!gridService.isLoaded) {
+      if (requireBme) {
+        return EovTransformResult(
+          coordinates: null,
+          mode: selected,
+          status: EovTransformStatus.gridNotLoaded,
+        );
+      }
+      final res = _wgs84.transform(_eov, Point(x: lon, y: lat));
       return EovTransformResult(
-        coordinates: null,
-        mode: selected,
-        status: EovTransformStatus.gridNotLoaded,
+        coordinates: [res.x, res.y],
+        mode: EovTransformMode.legacy,
+        status: EovTransformStatus.legacy,
       );
     }
     final hd = gridService.etrfToHd(lon, lat);
     if (hd == null) {
+      if (requireBme) {
+        return EovTransformResult(
+          coordinates: null,
+          mode: selected,
+          status: EovTransformStatus.outsideGrid,
+        );
+      }
+      final res = _wgs84.transform(_eov, Point(x: lon, y: lat));
       return EovTransformResult(
-        coordinates: null,
-        mode: selected,
-        status: EovTransformStatus.outsideGrid,
+        coordinates: [res.x, res.y],
+        mode: EovTransformMode.legacy,
+        status: EovTransformStatus.legacy,
       );
     }
     final res = _wgs84.transform(
@@ -146,20 +162,36 @@ class EovService {
       );
     }
     if (!gridService.isLoaded) {
+      if (requireBme) {
+        return EovTransformResult(
+          coordinates: null,
+          mode: selected,
+          status: EovTransformStatus.gridNotLoaded,
+        );
+      }
+      final res = _eov.transform(_wgs84, Point(x: eovY, y: eovX));
       return EovTransformResult(
-        coordinates: null,
-        mode: selected,
-        status: EovTransformStatus.gridNotLoaded,
+        coordinates: [res.y, res.x],
+        mode: EovTransformMode.legacy,
+        status: EovTransformStatus.legacy,
       );
     }
     final hdProjection = Projection.get('MFK_HD72_EOV')!;
     final hd = hdProjection.transform(_wgs84, Point(x: eovY, y: eovX));
     final etrf = gridService.hdToEtrf(hd.x, hd.y);
     if (etrf == null) {
+      if (requireBme) {
+        return EovTransformResult(
+          coordinates: null,
+          mode: selected,
+          status: EovTransformStatus.outsideGrid,
+        );
+      }
+      final res = _eov.transform(_wgs84, Point(x: eovY, y: eovX));
       return EovTransformResult(
-        coordinates: null,
-        mode: selected,
-        status: EovTransformStatus.outsideGrid,
+        coordinates: [res.y, res.x],
+        mode: EovTransformMode.legacy,
+        status: EovTransformStatus.legacy,
       );
     }
     return EovTransformResult(

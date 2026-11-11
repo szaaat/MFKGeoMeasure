@@ -1241,6 +1241,10 @@ class ProjectService extends ChangeNotifier {
 
   void deleteFeatureVertex(GeoFeature feature, int index) {
     if (index < 0 || index >= feature.geometry.length) return;
+    if (feature.type == FeatureType.point) {
+      deleteFeature(feature.id);
+      return;
+    }
     if (feature.type == FeatureType.line && feature.geometry.length <= 2) {
       throw Exception("Vonal nem tartalmazhat 2-nél kevesebb csúcspontot.");
     }
@@ -1895,8 +1899,25 @@ class ProjectService extends ChangeNotifier {
             loadedProjects.add(Project.fromJson(migratedJson));
           }
 
+          // Self-healing: Purge any corrupt/empty features (f.geometry.isEmpty) loaded from disk
+          bool hadCorruptFeatures = false;
+          for (var p in loadedProjects) {
+            for (var l in p.layers) {
+              final initialCount = l.features.length;
+              l.features.removeWhere((f) => f.geometry.isEmpty);
+              if (l.features.length != initialCount) {
+                hadCorruptFeatures = true;
+                debugPrint('[SELF-HEALING] Purged ${initialCount - l.features.length} empty features from layer ${l.name}');
+              }
+            }
+          }
+
           _projects.clear();
           _projects.addAll(loadedProjects);
+
+          if (hadCorruptFeatures) {
+            await _performSaveToDisk();
+          }
 
           if (_projects.isNotEmpty) {
             _activeProject = _projects.first;
